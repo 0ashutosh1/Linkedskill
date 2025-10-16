@@ -151,120 +151,228 @@ export default function CourseCard({title, tag, author, date, time, onSelect, on
   return (
     <div 
       ref={cardRef}
-      className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative"
+      className={`bg-white rounded-lg sm:rounded-xl lg:rounded-2xl 
+                  shadow-sm hover:shadow-lg hover:shadow-purple-500/20
+                  transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02]
+                  relative border border-gray-100 hover:border-purple-200
+                  ${showPopup ? 'z-[80]' : 'z-10'}
+                  group cursor-pointer touch-manipulation`}
       onMouseEnter={() => setShowPopup(true)}
       onMouseLeave={() => setShowPopup(false)}
-      style={{ overflow: 'visible' }}
+      style={{ overflow: 'visible', position: 'relative' }}
     >
-      <div className={`h-32 md:h-40 bg-gradient-to-br ${imageStyle.gradient} flex items-center justify-center cursor-pointer relative overflow-hidden group`} onClick={() => onSelect && onSelect({ title, tag, author, date, time })}>
-        {/* Animated background pattern */}
-        <div className="absolute inset-0 opacity-10">
+      {/* Enhanced responsive hero section */}
+      <div className={`h-24 xs:h-28 sm:h-32 md:h-36 lg:h-40 xl:h-44
+                       bg-gradient-to-br ${imageStyle.gradient} 
+                       flex items-center justify-center cursor-pointer 
+                       relative overflow-hidden group
+                       rounded-t-lg sm:rounded-t-xl lg:rounded-t-2xl`} 
+           onClick={() => onSelect && onSelect({ title, tag, author, date, time })}>
+        
+        {/* Enhanced animated background pattern */}
+        <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-            backgroundSize: '32px 32px'
+            backgroundSize: '24px 24px sm:32px sm:32px'
           }}></div>
         </div>
         
-        {/* Gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        {/* Enhanced gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent 
+                        opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
         
-        {/* Icon */}
-        <div className="relative z-10 transform group-hover:scale-110 transition-transform duration-300">
-          {imageStyle.icon}
+        {/* Enhanced responsive icon */}
+        <div className="relative z-10 transform group-hover:scale-110 group-hover:rotate-3
+                        transition-all duration-500 drop-shadow-lg">
+          <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 
+                          text-white/90 group-hover:text-white transition-colors duration-300">
+            {imageStyle.icon}
+          </div>
         </div>
         
-        {/* Corner accent */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full transform translate-x-12 -translate-y-12 group-hover:translate-x-8 group-hover:-translate-y-8 transition-transform duration-300"></div>
+        {/* Enhanced corner accent */}
+        <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 
+                        bg-white/10 rounded-bl-full 
+                        transform translate-x-8 -translate-y-8 sm:translate-x-10 sm:-translate-y-10 md:translate-x-12 md:-translate-y-12
+                        group-hover:translate-x-6 group-hover:-translate-y-6 sm:group-hover:translate-x-8 sm:group-hover:-translate-y-8
+                        transition-transform duration-500"></div>
+        
+        {/* Pulse effect on hover */}
+        <div className="absolute inset-0 rounded-t-lg sm:rounded-t-xl lg:rounded-t-2xl
+                        ring-2 ring-white/20 opacity-0 group-hover:opacity-100 
+                        transition-opacity duration-300 animate-pulse"></div>
       </div>
-      <div className="p-3 md:p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold px-2 md:px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700">{tag}</span>
-          <span className="text-xs text-gray-400">{time}</span>
+      {/* Enhanced responsive content section */}
+      <div className="p-2.5 xs:p-3 sm:p-4 md:p-5">
+        {/* Enhanced header row */}
+        <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+          <span className="text-xs sm:text-sm font-semibold 
+                           px-1.5 xs:px-2 sm:px-3 py-0.5 xs:py-1 
+                           rounded-full bg-gradient-to-r from-purple-100 to-pink-100 
+                           text-purple-700 hover:from-purple-200 hover:to-pink-200 
+                           transition-all duration-300 truncate flex-1 text-center">
+            {tag}
+          </span>
+          <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0 
+                           bg-gray-50 px-2 py-0.5 rounded-full">
+            {time}
+          </span>
         </div>
-        <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3 line-clamp-2 cursor-pointer hover:text-purple-600 transition-colors" onClick={() => onSelect && onSelect({ title, tag, author, date, time })}>{title}</h4>
-        <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-gray-100 gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+
+        {/* Enhanced responsive title */}
+        <h4 className="font-semibold text-xs xs:text-sm sm:text-base 
+                       mb-2 sm:mb-3 md:mb-4 line-clamp-2 
+                       cursor-pointer hover:text-purple-600 active:text-purple-700
+                       transition-colors duration-300 leading-tight
+                       group-hover:text-purple-600" 
+            onClick={() => onSelect && onSelect({ title, tag, author, date, time })}>
+          {title}
+        </h4>
+
+        {/* Enhanced footer section */}
+        <div className="flex items-center justify-between 
+                        pt-2 sm:pt-3 border-t border-gray-100 gap-2 sm:gap-3">
+          
+          {/* Enhanced author section */}
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+            <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 
+                            bg-gradient-to-br from-purple-400 to-pink-400 
+                            hover:from-purple-500 hover:to-pink-500
+                            rounded-full flex items-center justify-center 
+                            text-white text-xs sm:text-sm font-bold flex-shrink-0
+                            transition-all duration-300 hover:scale-110 
+                            ring-2 ring-white group-hover:ring-purple-200">
               {author?.charAt(0) || 'A'}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold text-gray-700 truncate">{author}</div>
-              <div className="text-xs text-gray-400 truncate">{date}</div>
+              <div className="text-xs sm:text-sm font-semibold text-gray-700 
+                             truncate hover:text-purple-600 transition-colors">
+                {author}
+              </div>
+              <div className="text-xs text-gray-400 truncate">
+                {date}
+              </div>
             </div>
           </div>
+
+          {/* Enhanced join button */}
           <button 
             onClick={(e) => { e.stopPropagation(); onJoin && onJoin({ title, tag, author, date, time }); }}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-semibold px-3 md:px-4 py-1.5 md:py-2 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 flex-shrink-0"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 
+                       hover:from-purple-700 hover:to-pink-700 
+                       active:from-purple-800 active:to-pink-800
+                       text-white text-xs sm:text-sm font-semibold 
+                       px-2.5 xs:px-3 sm:px-4 py-1 xs:py-1.5 sm:py-2 
+                       rounded-full hover:shadow-lg hover:shadow-purple-500/30
+                       transition-all duration-300 hover:scale-105 active:scale-95
+                       flex-shrink-0 touch-manipulation
+                       ring-2 ring-transparent hover:ring-purple-300/50"
           >
-            Join
+            <span className="hidden xs:inline">Join</span>
+            <span className="xs:hidden">+</span>
           </button>
         </div>
       </div>
 
-      {/* Hover Popup - Overlays at same position but bigger - Hidden on mobile */}
+      {/* Balanced responsive hover popup - Smaller and more proportional */}
       {showPopup && (
-        <div className="hidden md:block absolute -inset-4 bg-white rounded-xl shadow-2xl p-6 z-50 animate-fadeIn border-2 border-purple-200" style={{ minHeight: '420px' }}>
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="inline-block text-sm font-semibold px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700">
+        <div className="hidden md:block absolute z-[100] hover-card
+                        bg-white/95 rounded-lg shadow-xl border border-purple-200
+                        p-4 animate-fadeIn transition-all duration-300
+                        hover:shadow-2xl hover:border-purple-300 hover:bg-white" 
+             style={{ 
+               width: '300px',
+               minHeight: '320px',
+               maxHeight: '400px',
+               left: popupPosition === 'left' ? '-280px' : '10px',
+               top: '-10px',
+               overflow: 'auto'
+             }}>
+          {/* Compact popup header */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <span className="inline-block text-xs font-semibold 
+                               px-2 py-1 rounded-full 
+                               bg-gradient-to-r from-purple-100 to-pink-100 
+                               text-purple-700 hover:from-purple-200 hover:to-pink-200
+                               transition-colors duration-300 flex-1 text-center text-center">
                 {tag}
               </span>
-              <span className="text-sm text-gray-400">{time}</span>
+              <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                {time}
+              </span>
             </div>
-            <h3 className="text-lg font-bold text-gray-800 mb-3 line-clamp-2">{title}</h3>
-            <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-              {description || "Learn the fundamentals and advanced concepts to become a professional developer. This comprehensive course covers everything you need to know."}
+            
+            <h3 className="text-sm font-bold text-gray-800 
+                           mb-2 line-clamp-2 leading-tight">
+              {title}
+            </h3>
+            
+            <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
+              {description || "Learn the fundamentals and advanced concepts to become a professional developer."}
             </p>
           </div>
 
-          <div className="space-y-3 mb-5">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+          {/* Compact course details */}
+          <div className="space-y-1.5 mb-3">
+            <div className="flex items-center gap-2 text-xs text-gray-700
+                            hover:text-purple-600 transition-colors duration-200
+                            bg-gray-50 hover:bg-purple-50 px-2 py-1.5 rounded-md">
+              <svg className="w-3 h-3 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
               </svg>
-              <span className="font-semibold">By:</span>
-              <span>{author}</span>
+              <span className="font-medium">By:</span>
+              <span className="truncate">{author}</span>
             </div>
             
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+            <div className="flex items-center gap-2 text-xs text-gray-700
+                            hover:text-purple-600 transition-colors duration-200
+                            bg-gray-50 hover:bg-purple-50 px-2 py-1.5 rounded-md">
+              <svg className="w-3 h-3 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
               </svg>
-              <span className="font-semibold">Learners:</span>
-              <span>{learners || '4,599'}</span>
+              <span className="font-medium">Learners:</span>
+              <span>{learners || '4,599+'}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
-              </svg>
-              <span className="font-semibold">Updated:</span>
-              <span>{date}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-              </svg>
-              <span className="font-semibold">Level:</span>
-              <span>{level || 'Beginner'}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-700">
+                <svg className="w-3 h-3 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                </svg>
+                <span>{level || 'Beginner'}</span>
+              </div>
+              <span className="text-xs text-gray-500">{date}</span>
             </div>
           </div>
 
+          {/* Compact popup action buttons */}
           <div className="flex gap-2">
             <button 
               onClick={(e) => { e.stopPropagation(); onJoin && onJoin({ title, tag, author, date, time }); }}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-semibold py-3 rounded-lg hover:shadow-lg transition-all duration-300"
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 
+                         hover:from-purple-700 hover:to-pink-700 
+                         text-white text-xs font-semibold 
+                         py-2 rounded-md 
+                         hover:shadow-lg hover:shadow-purple-500/30
+                         transition-all duration-300 hover:scale-105 active:scale-95"
             >
               Join Now
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
-              className={`px-4 py-3 rounded-lg border-2 transition-all duration-300 ${saved ? 'border-purple-600 bg-purple-50 text-purple-600' : 'border-gray-300 text-gray-600 hover:border-purple-600'}`}
-              title={saved ? "Saved" : "Save"}
+              className={`px-2.5 py-2 rounded-md border 
+                         transition-all duration-300 hover:scale-105 active:scale-95
+                         ${saved 
+                           ? 'border-purple-600 bg-purple-50 text-purple-600 hover:bg-purple-100' 
+                           : 'border-gray-300 text-gray-600 hover:border-purple-600 hover:text-purple-600 hover:bg-purple-50'}`}
+              title={saved ? "Saved" : "Save for later"}
             >
-              <svg className="w-5 h-5" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+              <svg className="w-3.5 h-3.5" 
+                   fill={saved ? "currentColor" : "none"} 
+                   stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                      d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
               </svg>
             </button>
           </div>

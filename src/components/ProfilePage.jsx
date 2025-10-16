@@ -1,1008 +1,899 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
-const PROFILE_TEMPLATES = {
-  default: {
-    id: 'default',
-    name: 'LinkedSkill Learner',
-    role: 'Lifelong Learner',
-    avatar: '/src/assets/placeholder.svg',
-    location: 'Remote · Global',
-    language: 'English (US)',
-    experience: 'New to LinkedSkill',
-    availability: 'Open to new pathways',
-    bio: 'Start shaping your learning roadmap with curated programs, actionable feedback, and a supportive community that scales with your ambitions.',
-    badges: ['Growth Mindset', 'Community Member'],
-    links: {
-      website: 'https://linkedskill.com',
-      linkedin: '',
-      twitter: '',
-      youtube: ''
-    },
-    stats: [
-      { label: 'Courses Completed', value: '12', change: '+18% vs last month' },
-      { label: 'Learning Hours', value: '46h', change: '+6h this week' },
-      { label: 'Active Streak', value: '8 days', change: 'Keep the momentum!' },
-      { label: 'Certificates', value: '3', change: 'Next milestone unlocked soon' }
-    ],
-    focusAreas: [
-      'Build a consistent learning routine',
-      'Connect with mentors for faster feedback',
-      'Apply new skills on portfolio-ready projects'
-    ],
-    contact: {
-      email: 'hello@linkedskill.com',
-      phone: '+1 (555) 000-1122',
-      website: 'linkedskill.com',
-      timezone: 'Flexible availability'
-    },
-    skills: ['Goal Setting', 'Online Collaboration', 'Research', 'Presentation'],
-    currentCourses: [
-      { title: 'Learning Foundations', progress: 55, nextLesson: 'Module 4 · Feedback loops', color: 'from-purple-500 to-indigo-500' },
-      { title: 'Career Clarity Sprint', progress: 30, nextLesson: 'Workshop · Storytelling', color: 'from-pink-500 to-orange-500' }
-    ],
-    achievements: [
-      { title: 'Milestone · First Certificate', date: 'Aug 2025', description: 'Completed the Starter Path and earned your first credential.' }
-    ],
-    activity: [
-      { title: 'Updated learning goals', time: 'Today', description: 'Set three focus areas for the next 30 days.' },
-      { title: 'Scheduled mentor intro chat', time: '2 days ago', description: 'Booked a session with a LinkedSkill mentor to discuss roadmap.' }
-    ]
-  },
-  me: {
-    id: 'me',
-    name: 'Alex Morgan',
-    role: 'Senior Frontend Engineer · LinkedSkill Mentor',
-    avatar: '/src/assets/placeholder.svg',
-    location: 'Austin, USA',
-    experience: '6+ years experience',
-    availability: 'Available for mentorship weekly',
-    bio: 'Alex helps teams build accessible, high-performing web applications. At LinkedSkill, Alex leads the frontend mentorship track and coaches learners on shipping production-ready experiences.',
-    badges: ['Top Mentor 2025', 'React Specialist', 'Design Systems Advocate'],
-    stats: [
-      { label: 'Courses Completed', value: '32', change: '+12% vs last month' },
-      { label: 'Hours Mentored', value: '84h', change: '+4 sessions this week' },
-      { label: 'Students Impacted', value: '128', change: '+9 in current cohort' },
-      { label: 'Certificates', value: '6', change: 'Latest · Cloud Architecture' }
-    ],
-    focusAreas: [
-      'Advanced React & TypeScript patterns',
-      'Design systems & accessibility strategy',
-      'Career coaching for mid-level engineers'
-    ],
-    contact: {
-      email: 'alex.morgan@linkedskill.com',
-      phone: '+1 (555) 234-7788',
-      website: 'linkedskill.com/alex',
-      timezone: 'Central Time (GMT-5)'
-    },
-    language: 'English (US)',
-    links: {
-      website: 'https://linkedskill.com/alex',
-      linkedin: 'https://linkedin.com/in/alex',
-      twitter: 'https://x.com/alex',
-      youtube: 'https://youtube.com/@alex'
-    },
-    skills: ['React', 'TypeScript', 'Node.js', 'GraphQL', 'Design Systems', 'UI/UX'],
-    currentCourses: [
-      { title: 'Leading Engineering Teams', progress: 72, nextLesson: 'Module 5 · Coaching frameworks', color: 'from-purple-500 to-indigo-500' },
-      { title: 'Cloud Native Frontends', progress: 45, nextLesson: 'Workshop · Deploying to edge', color: 'from-pink-500 to-orange-500' },
-      { title: 'Storytelling for Engineers', progress: 20, nextLesson: 'Lesson 3 · Crafting narratives', color: 'from-emerald-500 to-teal-500' }
-    ],
-    achievements: [
-      { title: 'Top Mentor Award', date: 'Sep 2025', description: 'Recognized for guiding 25+ learners to land new roles.' },
-      { title: 'Certified React Professional', date: 'Jun 2025', description: 'Completed LinkedSkill expert certification with honors.' }
-    ],
-    activity: [
-      { title: 'Hosted live Q&A on career pivots', time: '45m ago', description: 'Answered questions from 60+ community members and shared action plans.' },
-      { title: 'Reviewed capstone project', time: 'Yesterday', description: 'Provided feedback to Jasmine on her UX case study for an EdTech platform.' },
-      { title: 'Published guide · Measuring Frontend Quality', time: '2 days ago', description: 'Shared best practices for performance and accessibility metrics.' }
-    ]
-  },
-  andrew: {
-    id: 'andrew',
-    name: 'Andrew Meter',
-    role: 'Software Developer · FinTech',
-    avatar: '/src/assets/placeholder.svg',
-    location: 'Berlin, Germany',
-    experience: '3+ years experience',
-    availability: 'Exploring senior roles this quarter',
-    bio: 'Andrew builds secure payment flows and loves pairing on refactoring sessions. Through LinkedSkill, Andrew is preparing for technical interviews and strengthening systems design skills.',
-    badges: ['JavaScript Aficionado', 'Community Contributor'],
-    stats: [
-      { label: 'Courses Completed', value: '18', change: '+4 this quarter' },
-      { label: 'Mock Interviews', value: '6', change: 'Booked 2 this week' },
-      { label: 'Portfolio Projects', value: '5', change: 'Added redesign case study' },
-      { label: 'Certificates', value: '4', change: 'Security Essentials earned' }
-    ],
-    focusAreas: [
-      'Systems design fundamentals',
-      'Performance profiling & optimization',
-      'Interview storytelling with data'
-    ],
-    contact: {
-      email: 'andrew.meter@linkedskill.com',
-      phone: '+49 30 1234-5678',
-      website: 'linkedskill.com/andrew',
-      timezone: 'Central European Time (GMT+1)'
-    },
-    language: 'English (US)',
-    links: {
-      website: 'https://linkedskill.com/andrew',
-      linkedin: 'https://linkedin.com/in/andrew',
-      twitter: '',
-      youtube: ''
-    },
-    skills: ['Node.js', 'React', 'Docker', 'PostgreSQL', 'System Design', 'Testing'],
-    currentCourses: [
-      { title: 'Systems Design Foundations', progress: 64, nextLesson: 'Module 6 · Scaling patterns', color: 'from-blue-500 to-indigo-500' },
-      { title: 'Interview Storytelling Lab', progress: 40, nextLesson: 'Assignment · Craft your STAR stories', color: 'from-amber-500 to-orange-500' }
-    ],
-    achievements: [
-      { title: 'Security Essentials Certificate', date: 'Aug 2025', description: 'Completed LinkedSkill security specialization for backend engineers.' }
-    ],
-    activity: [
-      { title: 'Shipped A/B testing framework', time: '3h ago', description: 'Rolled out experiment tooling for checkout flow at work.' },
-      { title: 'Recorded mock interview recap', time: 'Yesterday', description: 'Captured takeaways and next steps after senior panel review.' }
-    ]
-  },
-  jeff: {
-    id: 'jeff',
-    name: 'Jeff Linkoln',
-    role: 'Product Owner · SaaS',
-    avatar: '/src/assets/placeholder.svg',
-    location: 'Toronto, Canada',
-    experience: '7+ years in product leadership',
-    availability: 'Open to speaking engagements',
-    bio: 'Jeff aligns cross-functional teams around measurable outcomes. Within LinkedSkill, Jeff mentors aspiring product managers and leads workshops on roadmap strategy.',
-    badges: ['Product Strategist', 'OKR Champion'],
-    stats: [
-      { label: 'Workshops Led', value: '14', change: '+2 this month' },
-      { label: 'Learner NPS', value: '4.9/5', change: 'Top 3% across LinkedSkill' },
-      { label: 'Discovery Sprints', value: '9', change: 'Coached 3 teams recently' },
-      { label: 'Certificates', value: '5', change: 'Latest · Data Storytelling' }
-    ],
-    focusAreas: [
-      'Outcome-driven product strategy',
-      'Stakeholder facilitation & storytelling',
-      'Experiment design and analytics'
-    ],
-    contact: {
-      email: 'jeff.linkoln@linkedskill.com',
-      phone: '+1 (437) 555-8910',
-      website: 'linkedskill.com/jeff',
-      timezone: 'Eastern Time (GMT-4)'
-    },
-    language: 'English (US)',
-    links: {
-      website: 'https://linkedskill.com/jeff',
-      linkedin: 'https://linkedin.com/in/jeff',
-      twitter: '',
-      youtube: 'https://youtube.com/@jeff'
-    },
-    skills: ['Product Strategy', 'User Research', 'Analytics', 'Roadmapping', 'Workshop Facilitation', 'Storytelling'],
-    currentCourses: [
-      { title: 'Data Storytelling for PMs', progress: 88, nextLesson: 'Capstone · Present the narrative', color: 'from-purple-600 to-blue-500' },
-      { title: 'Designing Experiments', progress: 52, nextLesson: 'Module 4 · Prioritizing hypotheses', color: 'from-emerald-500 to-lime-500' }
-    ],
-    achievements: [
-      { title: 'OKR Coach Certification', date: 'Jul 2025', description: 'Certified to lead LinkedSkill OKR bootcamps for product teams.' },
-      { title: 'Product Mentor Spotlight', date: 'May 2025', description: 'Featured for supporting cross-border product squads.' }
-    ],
-    activity: [
-      { title: 'Published roadmap template', time: '1h ago', description: 'Shared a quarterly planning canvas with the LinkedSkill community.' },
-      { title: 'Led stakeholder storytelling workshop', time: 'Yesterday', description: 'Guided 40 learners through crafting outcomes-focused narratives.' }
-    ]
-  }
-}
+const API_URL = 'http://localhost:4000'
 
-const CUSTOM_OPTION_VALUE = '__custom'
+export default function ProfilePage({ onBack, profile: passedProfile }) {
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const isOwnProfile = !passedProfile || passedProfile.id === 'me'
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phoneNo: '',
+    education: '',
+    areasOfInterest: [],
+    occupation: '',
+    designation: '',
+    linkedin: '',
+    website: '',
+    photoUrl: ''
+  })
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const [myClasses, setMyClasses] = useState([])
+  const [loadingClasses, setLoadingClasses] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editingClass, setEditingClass] = useState(null)
+  const [classFormData, setClassFormData] = useState({
+    title: '',
+    description: '',
+    date: ''
+  })
+  const [newInterest, setNewInterest] = useState('')
+  const [showAllClasses, setShowAllClasses] = useState(false)
+  const [dateFilter, setDateFilter] = useState('')
+  const [showDateFilter, setShowDateFilter] = useState(false)
 
-const HEADLINE_OPTIONS = [
-  {
-    group: 'Engineering & Technology',
-    options: [
-      { value: 'Software Developer', label: 'Software Developer' },
-      { value: 'Senior Frontend Engineer · LinkedSkill Mentor', label: 'Senior Frontend Engineer · LinkedSkill Mentor' },
-      { value: 'Full Stack Engineer', label: 'Full Stack Engineer' },
-      { value: 'Technical Lead', label: 'Technical Lead' }
-    ]
-  },
-  {
-    group: 'Product & Design',
-    options: [
-      { value: 'Product Leader', label: 'Product Leader' },
-      { value: 'UX Strategist', label: 'UX Strategist' },
-      { value: 'Design Systems Advocate', label: 'Design Systems Advocate' }
-    ]
-  },
-  {
-    group: 'Learning & Coaching',
-    options: [
-      { value: 'Mentor & Coach', label: 'Mentor & Coach' },
-      { value: 'Career Coach', label: 'Career Coach' },
-      { value: 'Learning Architect', label: 'Learning Architect' }
-    ]
-  }
-]
-
-const LOCATION_OPTIONS = [
-  {
-    group: 'North America',
-    options: [
-      { value: 'Austin, USA', label: 'Austin, USA' },
-      { value: 'New York, USA', label: 'New York, USA' },
-      { value: 'Toronto, Canada', label: 'Toronto, Canada' }
-    ]
-  },
-  {
-    group: 'Europe',
-    options: [
-      { value: 'Berlin, Germany', label: 'Berlin, Germany' },
-      { value: 'London, United Kingdom', label: 'London, United Kingdom' },
-      { value: 'Lisbon, Portugal', label: 'Lisbon, Portugal' }
-    ]
-  },
-  {
-    group: 'Global',
-    options: [
-      { value: 'Remote · Global', label: 'Remote · Global' },
-      { value: 'Hybrid · Multiple Regions', label: 'Hybrid · Multiple Regions' }
-    ]
-  }
-]
-
-const AVAILABILITY_OPTIONS = [
-  {
-    group: 'Mentorship',
-    options: [
-      { value: 'Available for mentorship weekly', label: 'Available for mentorship weekly' },
-      { value: 'Open to mentorship inquiries', label: 'Open to mentorship inquiries' }
-    ]
-  },
-  {
-    group: 'Collaboration',
-    options: [
-      { value: 'Open to collaborations this quarter', label: 'Open to collaborations this quarter' },
-      { value: 'Exploring new projects soon', label: 'Exploring new projects soon' }
-    ]
-  },
-  {
-    group: 'Limited Availability',
-    options: [
-      { value: 'Limited availability · Please inquire', label: 'Limited availability · Please inquire' },
-      { value: 'Currently booked · Waitlist open', label: 'Currently booked · Waitlist open' }
-    ]
-  }
-]
-
-const flattenOptions = (groups) =>
-  groups.flatMap((group) =>
-    group.options.map((option) =>
-      typeof option === 'string'
-        ? { value: option, label: option }
-        : option
-    )
-  )
-
-export default function ProfilePage({ profile, onBack, onEditDetails }) {
-  const resolvedProfile = React.useMemo(() => {
-    if (profile?.id && PROFILE_TEMPLATES[profile.id]) {
-      return { ...PROFILE_TEMPLATES[profile.id], ...profile }
+  useEffect(() => {
+    if (isOwnProfile) {
+      // Fetch current user's profile and classes
+      fetchProfile()
+      fetchMyClasses()
+    } else {
+      // Display passed profile data (read-only)
+      setProfile(passedProfile)
+      setFormData({
+        name: passedProfile.name || '',
+        email: passedProfile.email || '',
+        phoneNo: passedProfile.phoneNo || '',
+        education: passedProfile.education || '',
+        areasOfInterest: passedProfile.areasOfInterest || [],
+        occupation: passedProfile.occupation || '',
+        designation: passedProfile.designation || '',
+        linkedin: passedProfile.linkedin || '',
+        website: passedProfile.website || '',
+        photoUrl: passedProfile.photoUrl || ''
+      })
+      setLoading(false)
     }
-    if (profile) {
-      return { ...PROFILE_TEMPLATES.default, ...profile }
+  }, [passedProfile, isOwnProfile])
+
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please login to view your profile' })
+        setLoading(false)
+        return
+      }
+
+      console.log('Fetching profile...') // Debug log
+
+      const response = await fetch(`${API_URL}/profile/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      console.log('Profile fetch response status:', response.status) // Debug log
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Profile data received:', data) // Debug log
+        setProfile(data.profile)
+        setFormData({
+          name: data.profile.name || '',
+          email: data.profile.email || '',
+          phoneNo: data.profile.phoneNo || '',
+          education: data.profile.education || '',
+          areasOfInterest: data.profile.areasOfInterest || [],
+          occupation: data.profile.occupation || '',
+          designation: data.profile.designation || '',
+          linkedin: data.profile.linkedin || '',
+          website: data.profile.website || '',
+          photoUrl: data.profile.photoUrl || ''
+        })
+      } else if (response.status === 404) {
+        console.log('Profile not found, will create new one on save') // Debug log
+        setProfile(null)
+        // Check if there's user data to pre-populate
+        try {
+          const errorData = await response.json()
+          if (errorData.userData) {
+            setFormData(prev => ({
+              ...prev,
+              name: errorData.userData.name || '',
+              email: errorData.userData.email || '',
+              phoneNo: errorData.userData.phoneNo || ''
+            }))
+          }
+        } catch (e) {
+          console.log('No user data to pre-populate')
+        }
+      } else {
+        const errorData = await response.json()
+        console.log('Profile fetch error:', errorData) // Debug log
+        setMessage({ type: 'error', text: errorData.error || 'Failed to load profile' })
+      }
+    } catch (error) {
+      console.error('Network error fetching profile:', error)
+      setMessage({ type: 'error', text: `Network error: ${error.message}` })
+    } finally {
+      setLoading(false)
     }
-    return PROFILE_TEMPLATES.default
-  }, [profile])
+  }
 
-  const firstName = resolvedProfile.name?.split(' ')[0] || 'Learner'
-  const stats = resolvedProfile.stats || []
-  const skills = resolvedProfile.skills || []
-  const focusAreas = resolvedProfile.focusAreas || []
-  const currentCourses = resolvedProfile.currentCourses || []
-  const achievements = resolvedProfile.achievements || []
-  const activity = resolvedProfile.activity || []
-  const contact = resolvedProfile.contact || {}
-  const badges = resolvedProfile.badges || []
-  const links = resolvedProfile.links || {}
+  const fetchMyClasses = async () => {
+    try {
+      setLoadingClasses(true)
+      const token = localStorage.getItem('authToken')
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      
+      if (!token || !user.id) return
 
-  const [isEditing, setIsEditing] = React.useState(false)
-  const [formState, setFormState] = React.useState(null)
-  const [feedbackMessage, setFeedbackMessage] = React.useState('')
+      const response = await fetch(`${API_URL}/classes/user/${user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
 
-  const startEditing = React.useCallback(() => {
-    const resolvedAvatar = resolvedProfile.avatar || PROFILE_TEMPLATES.default.avatar
-    const resolvedHeadline = resolvedProfile.role || ''
-    const resolvedLocation = resolvedProfile.location || ''
-    const resolvedAvailability = resolvedProfile.availability || ''
+      if (response.ok) {
+        const data = await response.json()
+        setMyClasses(data.classes || [])
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error)
+    } finally {
+      setLoadingClasses(false)
+    }
+  }
 
-    const headlineMatch = flattenOptions(HEADLINE_OPTIONS).find((option) => option.value === resolvedHeadline)
-    const locationMatch = flattenOptions(LOCATION_OPTIONS).find((option) => option.value === resolvedLocation)
-    const availabilityMatch = flattenOptions(AVAILABILITY_OPTIONS).find((option) => option.value === resolvedAvailability)
-
-    setFormState({
-      fullName: resolvedProfile.name || '',
-      headline: resolvedHeadline,
-      headlineChoice: headlineMatch ? headlineMatch.value : CUSTOM_OPTION_VALUE,
-      headlineCustom: headlineMatch ? '' : resolvedHeadline,
-      bio: resolvedProfile.bio || '',
-      location: resolvedLocation,
-      locationChoice: locationMatch ? locationMatch.value : CUSTOM_OPTION_VALUE,
-      locationCustom: locationMatch ? '' : resolvedLocation,
-      language: resolvedProfile.language || 'English (US)',
-      experience: resolvedProfile.experience || '',
-      availability: resolvedAvailability,
-      availabilityChoice: availabilityMatch ? availabilityMatch.value : CUSTOM_OPTION_VALUE,
-      availabilityCustom: availabilityMatch ? '' : resolvedAvailability,
-      avatarPreview: resolvedAvatar,
-      avatarFile: null,
-      email: contact.email || '',
-      phone: contact.phone || '',
-      timezone: contact.timezone || '',
-      website: links.website || contact.website || '',
-      linkedin: links.linkedin || '',
-      twitter: links.twitter || '',
-      youtube: links.youtube || ''
-    })
-    setIsEditing(true)
-    setFeedbackMessage('')
-  }, [contact.email, contact.phone, contact.timezone, contact.website, links, resolvedProfile])
-
-  const cancelEditing = React.useCallback(() => {
-    setIsEditing(false)
-    setFormState(null)
-    setFeedbackMessage('')
-  }, [])
-
-  const handleChange = React.useCallback((field, value) => {
-    setFormState((prev) => ({
-      ...(prev || {}),
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
       [field]: value
     }))
-  }, [])
+  }
 
-  const handlePresetSelect = React.useCallback((field, value) => {
-    setFormState((prev) => {
-      if (!prev) return prev
-      const choiceKey = `${field}Choice`
-      const customKey = `${field}Custom`
-      return {
+  const handleAreasOfInterestChange = (value) => {
+    const interests = value.split(',').map(item => item.trim()).filter(item => item)
+    setFormData(prev => ({
+      ...prev,
+      areasOfInterest: interests
+    }))
+  }
+
+  const addInterest = () => {
+    if (newInterest.trim() && !formData.areasOfInterest.includes(newInterest.trim())) {
+      setFormData(prev => ({
         ...prev,
-        [choiceKey]: value,
-        [field]: value === CUSTOM_OPTION_VALUE ? prev[customKey] || '' : value
-      }
+        areasOfInterest: [...prev.areasOfInterest, newInterest.trim()]
+      }))
+      setNewInterest('')
+    }
+  }
+
+  const removeInterest = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      areasOfInterest: prev.areasOfInterest.filter((_, index) => index !== indexToRemove)
+    }))
+  }
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addInterest()
+    }
+  }
+
+  // Sort classes by date (newest first) and filter based on showAllClasses and dateFilter
+  const getFilteredClasses = () => {
+    if (!myClasses || myClasses.length === 0) return []
+    
+    let filteredClasses = [...myClasses]
+
+    // Filter by custom date if dateFilter is set
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter)
+      const filterDateStart = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate())
+      const filterDateEnd = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1)
+      
+      filteredClasses = filteredClasses.filter(classItem => {
+        const classDate = new Date(classItem.date || classItem.createdAt || Date.now())
+        return classDate >= filterDateStart && classDate < filterDateEnd
+      })
+    }
+
+    // Sort by date (newest first)
+    const sortedClasses = filteredClasses.sort((a, b) => {
+      const dateA = new Date(a.date || a.createdAt || Date.now())
+      const dateB = new Date(b.date || b.createdAt || Date.now())
+      return dateB - dateA // Newest first
     })
-  }, [])
 
-  const handleCustomInput = React.useCallback((field, value) => {
-    setFormState((prev) => {
-      if (!prev) return prev
-      const customKey = `${field}Custom`
-      return {
-        ...prev,
-        [customKey]: value,
-        [field]: value
+    // If showAllClasses is false and no date filter, show only recent classes (last 4)
+    if (!dateFilter && !showAllClasses) {
+      return sortedClasses.slice(0, 4)
+    }
+
+    return sortedClasses
+  }
+
+  const clearDateFilter = () => {
+    setDateFilter('')
+    setShowDateFilter(false)
+  }
+
+  const saveProfile = async () => {
+    try {
+      setSaving(true)
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please login to save your profile' })
+        return
       }
+
+      console.log('Saving profile with data:', formData) // Debug log
+      console.log('Using token:', token?.substring(0, 20) + '...') // Debug log (partial token)
+      console.log('API URL:', `${API_URL}/profile`) // Debug log
+
+      const response = await fetch(`${API_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      console.log('Response status:', response.status) // Debug log
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Success response:', data) // Debug log
+        setProfile(data.profile || data)
+        setMessage({ type: 'success', text: 'Profile updated successfully!' })
+        setIsEditing(false)
+        
+        setTimeout(() => {
+          setMessage({ type: '', text: '' })
+        }, 3000)
+      } else {
+        let errorMessage = 'Failed to update profile'
+        try {
+          const errorData = await response.json()
+          console.log('Error response:', errorData) // Debug log
+          errorMessage = errorData.message || errorData.error || `Server error: ${response.status}`
+        } catch (parseError) {
+          console.log('Could not parse error response:', parseError) // Debug log
+          errorMessage = `Server error: ${response.status} ${response.statusText}`
+        }
+        setMessage({ type: 'error', text: errorMessage })
+      }
+    } catch (error) {
+      console.error('Network error saving profile:', error)
+      setMessage({ type: 'error', text: `Network error: ${error.message}` })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleClassEdit = (classItem) => {
+    setEditingClass(classItem._id)
+    setClassFormData({
+      title: classItem.title,
+      description: classItem.description,
+      date: classItem.date ? new Date(classItem.date).toISOString().split('T')[0] : ''
     })
-  }, [])
+  }
 
-  const handleAvatarUpload = React.useCallback((event) => {
-    const input = event.target
-    const file = input?.files?.[0]
-    if (!file) return
+  const handleClassCancel = () => {
+    setEditingClass(null)
+    setClassFormData({ title: '', description: '', date: '' })
+  }
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      const preview = typeof reader.result === 'string' ? reader.result : ''
-      setFormState((prev) => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          avatarFile: file,
-          avatarPreview: preview || prev.avatarPreview
+  const handleClassInputChange = (field, value) => {
+    setClassFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const saveClass = async (classId) => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please login to save changes' })
+        return
+      }
+
+      const response = await fetch(`${API_URL}/classes/${classId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(classFormData)
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Class updated successfully!' })
+        setEditingClass(null)
+        fetchMyClasses() // Refresh the classes list
+        
+        setTimeout(() => {
+          setMessage({ type: '', text: '' })
+        }, 3000)
+      } else {
+        const errorData = await response.json()
+        setMessage({ type: 'error', text: errorData.message || 'Failed to update class' })
+      }
+    } catch (error) {
+      console.error('Error saving class:', error)
+      setMessage({ type: 'error', text: 'Failed to update class' })
+    }
+  }
+
+  const deleteClass = async (classId) => {
+    if (!window.confirm('Are you sure you want to delete this class?')) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please login to delete classes' })
+        return
+      }
+
+      const response = await fetch(`${API_URL}/classes/${classId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
       })
-      if (input) {
-        input.value = ''
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Class deleted successfully!' })
+        fetchMyClasses() // Refresh the classes list
+        
+        setTimeout(() => {
+          setMessage({ type: '', text: '' })
+        }, 3000)
+      } else {
+        const errorData = await response.json()
+        setMessage({ type: 'error', text: errorData.message || 'Failed to delete class' })
       }
+    } catch (error) {
+      console.error('Error deleting class:', error)
+      setMessage({ type: 'error', text: 'Failed to delete class' })
     }
-    reader.readAsDataURL(file)
-  }, [])
+  }
 
-  const clearAvatar = React.useCallback(() => {
-    setFormState((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        avatarFile: null,
-        avatarPreview: PROFILE_TEMPLATES.default.avatar
-      }
-    })
-  }, [])
-
-  const handleSubmit = React.useCallback((event) => {
-    event.preventDefault()
-    if (!formState) return
-
-  const trimmedName = formState.fullName.trim() || resolvedProfile.name
-  const cleanedAvatar = typeof formState.avatarPreview === 'string' ? formState.avatarPreview.trim() : ''
-    const trimmedWebsite = formState.website?.trim() || ''
-    const resolvedHeadline = formState.headline?.trim() || resolvedProfile.role || ''
-    const resolvedLocation = formState.location?.trim() || resolvedProfile.location || ''
-    const resolvedAvailability = formState.availability?.trim() || resolvedProfile.availability || ''
-    const resolvedExperience = formState.experience?.trim() || ''
-    const resolvedBio = formState.bio?.trim() || ''
-    const resolvedLanguage = formState.language || 'English (US)'
-
-    const nextProfile = {
-      ...resolvedProfile,
-      name: trimmedName,
-      role: resolvedHeadline,
-      bio: resolvedBio,
-      location: resolvedLocation,
-      language: resolvedLanguage,
-      experience: resolvedExperience,
-      availability: resolvedAvailability,
-  avatar: cleanedAvatar || resolvedProfile.avatar || PROFILE_TEMPLATES.default.avatar,
-      contact: {
-        ...contact,
-        email: formState.email?.trim() || '',
-        phone: formState.phone?.trim() || '',
-        website: trimmedWebsite,
-        timezone: formState.timezone?.trim() || ''
-      },
-      links: {
-        ...links,
-        website: trimmedWebsite,
-        linkedin: formState.linkedin?.trim() || '',
-        twitter: formState.twitter?.trim() || '',
-        youtube: formState.youtube?.trim() || ''
-      }
-    }
-
-    if (typeof onEditDetails === 'function') {
-      onEditDetails(nextProfile)
-    } else {
-      console.info('Updated profile details', nextProfile)
-    }
-
-    setFeedbackMessage('Details saved for your current session.')
-    setIsEditing(false)
-  }, [contact, formState, links, onEditDetails, resolvedProfile])
-
-  React.useEffect(() => {
-    if (isEditing) {
-      startEditing()
-    }
-  }, [resolvedProfile, isEditing, startEditing])
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back Button */}
         <button
-          className="inline-flex items-center gap-2 text-sm font-medium text-purple-600 transition hover:text-purple-700"
           onClick={onBack}
-          type="button"
+          className="mb-6 inline-flex items-center gap-2 text-gray-600 hover:text-purple-600 font-medium transition"
         >
-          <span aria-hidden="true">←</span>
-          Back to dashboard
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Dashboard
         </button>
 
-        <button
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md w-full sm:w-auto justify-center"
-          onClick={isEditing ? cancelEditing : startEditing}
-          type="button"
-        >
-          <span aria-hidden="true">{isEditing ? '✖️' : '✏️'}</span>
-          {isEditing ? 'Close editor' : 'Edit personal details'}
-        </button>
-      </div>
+        {/* Message */}
+        {message.text && (
+          <div className={`mb-6 p-4 rounded-xl ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            <p className="text-sm font-medium">{message.text}</p>
+          </div>
+        )}
 
-      {feedbackMessage && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {feedbackMessage}
-        </div>
-      )}
-
-      {isEditing && formState && (
-        <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800">Personal details</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Update your public profile information. Keep it concise and focused on the value you bring.
-          </p>
-
-          <form className="mt-6 space-y-8" onSubmit={handleSubmit}>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700">Profile overview</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Full name</span>
-                  <input
-                    type="text"
-                    value={formState.fullName}
-                    onChange={(event) => handleChange('fullName', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="Alex Morgan"
-                    required
-                  />
-                </label>
-
-                <div className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Headline</span>
-                  <select
-                    value={formState.headlineChoice}
-                    onChange={(event) => handlePresetSelect('headline', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  >
-                    {HEADLINE_OPTIONS.map((group) => (
-                      <optgroup key={group.group} label={group.group}>
-                        {group.options.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                    <option value={CUSTOM_OPTION_VALUE}>Custom headline</option>
-                  </select>
-                  {formState.headlineChoice === CUSTOM_OPTION_VALUE && (
-                    <input
-                      type="text"
-                      value={formState.headlineCustom}
-                      onChange={(event) => handleCustomInput('headline', event.target.value)}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                      placeholder="Describe your expertise"
-                    />
-                  )}
-                </div>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Experience highlight</span>
-                  <input
-                    type="text"
-                    value={formState.experience}
-                    onChange={(event) => handleChange('experience', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="6+ years experience"
-                  />
-                </label>
-
-                <div className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Availability</span>
-                  <select
-                    value={formState.availabilityChoice}
-                    onChange={(event) => handlePresetSelect('availability', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  >
-                    {AVAILABILITY_OPTIONS.map((group) => (
-                      <optgroup key={group.group} label={group.group}>
-                        {group.options.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                    <option value={CUSTOM_OPTION_VALUE}>Custom availability</option>
-                  </select>
-                  {formState.availabilityChoice === CUSTOM_OPTION_VALUE && (
-                    <input
-                      type="text"
-                      value={formState.availabilityCustom}
-                      onChange={(event) => handleCustomInput('availability', event.target.value)}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                      placeholder="Share how others can connect"
-                    />
-                  )}
-                </div>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Primary language</span>
-                  <select
-                    value={formState.language}
-                    onChange={(event) => handleChange('language', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  >
-                    <option>English (US)</option>
-                    <option>English (UK)</option>
-                    <option>Deutsch</option>
-                    <option>Español</option>
-                    <option>Français</option>
-                  </select>
-                </label>
-
-                <div className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Location</span>
-                  <select
-                    value={formState.locationChoice}
-                    onChange={(event) => handlePresetSelect('location', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  >
-                    {LOCATION_OPTIONS.map((group) => (
-                      <optgroup key={group.group} label={group.group}>
-                        {group.options.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                    <option value={CUSTOM_OPTION_VALUE}>Custom location</option>
-                  </select>
-                  {formState.locationChoice === CUSTOM_OPTION_VALUE && (
-                    <input
-                      type="text"
-                      value={formState.locationCustom}
-                      onChange={(event) => handleCustomInput('location', event.target.value)}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                      placeholder="Add your location or preferred timezone"
-                    />
-                  )}
-                </div>
-
-                <div className="md:col-span-2">
-                  <span className="text-sm font-medium text-gray-700">Profile photo</span>
-                  <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="h-20 w-20 overflow-hidden rounded-full border border-gray-200 bg-gray-50">
-                        {formState.avatarPreview ? (
-                          <img
-                            src={formState.avatarPreview}
-                            alt="Profile preview"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
-                            No image
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 text-sm">
-                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 font-semibold text-white shadow-sm transition hover:shadow-md md:self-start">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarUpload}
-                          className="hidden"
-                        />
-                        Upload new image
-                      </label>
-                      {formState.avatarPreview && (
-                        <button
-                          type="button"
-                          onClick={clearAvatar}
-                          className="inline-flex items-center justify-center rounded-full border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50 md:self-start"
-                        >
-                          Reset to default
-                        </button>
-                      )}
-                      <p className="text-xs text-gray-400">Recommended: Square JPG or PNG, max 3MB.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <label className="flex flex-col gap-2 text-sm md:col-span-2">
-                  <span className="font-medium text-gray-700">Bio</span>
-                  <textarea
-                    value={formState.bio}
-                    onChange={(event) => handleChange('bio', event.target.value)}
-                    rows={4}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="Share a short introduction about your experience and goals."
-                  />
-                </label>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* My Profile Section */}
+          <div className="space-y-6">
+            {/* Profile Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-6 text-white">
+              <h2 className="text-2xl font-bold mb-2">
+                {isOwnProfile ? 'My Profile' : `${formData.name || 'User'}'s Profile`}
+              </h2>
+              <p className="text-white/80 text-sm">
+                {isOwnProfile ? 'Manage your professional information' : 'View professional information'}
+              </p>
             </div>
 
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700">Contact & presence</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Email</span>
-                  <input
-                    type="email"
-                    value={formState.email}
-                    onChange={(event) => handleChange('email', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="you@linkedskill.com"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Phone</span>
-                  <input
-                    type="tel"
-                    value={formState.phone}
-                    onChange={(event) => handleChange('phone', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Website</span>
-                  <input
-                    type="url"
-                    value={formState.website}
-                    onChange={(event) => handleChange('website', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="https://linkedskill.com/alex"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Timezone</span>
-                  <input
-                    type="text"
-                    value={formState.timezone}
-                    onChange={(event) => handleChange('timezone', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="Central Time (GMT-5)"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">LinkedIn</span>
-                  <input
-                    type="url"
-                    value={formState.linkedin}
-                    onChange={(event) => handleChange('linkedin', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="https://linkedin.com/in/username"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-medium text-gray-700">X/Twitter</span>
-                  <input
-                    type="url"
-                    value={formState.twitter}
-                    onChange={(event) => handleChange('twitter', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="https://x.com/username"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm md:col-span-2">
-                  <span className="font-medium text-gray-700">YouTube</span>
-                  <input
-                    type="url"
-                    value={formState.youtube}
-                    onChange={(event) => handleChange('youtube', event.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    placeholder="https://youtube.com/@username"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={cancelEditing}
-                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="rounded-full bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md"
-              >
-                Save changes
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      <section className="grid gap-4 md:gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-500 p-6 md:p-8 text-white shadow-xl">
-            <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/10" />
-            <div className="absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-white/10" />
-
-            <div className="relative flex flex-col gap-6 md:gap-8 md:flex-row md:items-center">
-              <div className="relative shrink-0 mx-auto md:mx-0">
-                <div className="flex h-24 w-24 md:h-28 md:w-28 items-center justify-center rounded-full border-4 border-white/40 bg-white/10 backdrop-blur">
-                  <img src={resolvedProfile.avatar} alt={`${resolvedProfile.name} avatar`} className="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover" />
-                </div>
-                <span className="absolute -bottom-2 md:-bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-2 md:px-3 py-1 text-xs font-semibold text-purple-600 shadow-lg whitespace-nowrap">
-                  {resolvedProfile.experience}
-                </span>
-              </div>
-
-              <div className="md:flex-1 text-center md:text-left">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight">{resolvedProfile.name}</h1>
-                <p className="mt-2 text-base md:text-lg text-white/80">{resolvedProfile.role}</p>
-
-                <div className="mt-3 md:mt-4 flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 text-sm text-white/80">
-                  <span className="inline-flex items-center gap-2">
-                    <span role="img" aria-hidden="true">📍</span>
-                    {resolvedProfile.location}
-                  </span>
-                  {contact.timezone && (
-                    <span className="inline-flex items-center gap-2">
-                      <span role="img" aria-hidden="true">⏰</span>
-                      {contact.timezone}
-                    </span>
-                  )}
-                </div>
-
-                {badges.length > 0 && (
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    {badges.map((badge) => (
-                      <span key={badge} className="rounded-full bg-white/20 px-4 py-1 text-sm font-medium backdrop-blur">
-                        {badge}
-                      </span>
-                    ))}
-                  </div>
+            {/* Personal Information */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+                  >
+                    {isEditing ? 'Cancel' : 'Edit'}
+                  </button>
                 )}
               </div>
-            </div>
 
-            <div className="relative mt-6 md:mt-8 grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
-              {stats.map((item) => (
-                <div key={item.label} className="rounded-xl md:rounded-2xl border border-white/20 bg-white/10 p-3 md:p-4">
-                  <div className="text-xs md:text-sm text-white/70">{item.label}</div>
-                  <div className="mt-1 md:mt-2 text-xl md:text-2xl font-semibold">{item.value}</div>
-                  <div className="mt-1 text-xs text-emerald-200 line-clamp-1">{item.change}</div>
+              {/* Avatar */}
+              <div className="flex items-center mb-6">
+                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
+                  {profile?.photoUrl ? (
+                    <img src={profile.photoUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <aside className="space-y-4 md:space-y-6">
-          <div className="rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700">About {firstName}</h3>
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">{resolvedProfile.bio}</p>
-
-            {focusAreas.length > 0 && (
-              <div className="mt-4 space-y-3">
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Current focus</div>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {focusAreas.map((area) => (
-                    <li key={area} className="flex items-start gap-2">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-purple-500" aria-hidden="true" />
-                      <span>{area}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="ml-4">
+                  <h4 className="font-semibold text-gray-900">{profile?.name || formData.name || 'KUMAR ASHUTOSH'}</h4>
+                  <p className="text-sm text-gray-500">{profile?.email || formData.email || 'COOL.ASHUTOSH@GMAIL.COM'}</p>
+                </div>
               </div>
-            )}
-          </div>
 
-          <div className="rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700">Connect</h3>
-            <dl className="mt-4 space-y-3 text-sm text-gray-600">
-              {contact.email && (
-                <div className="flex items-center gap-3">
-                  <dt className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-50 text-purple-600">📧</dt>
-                  <dd className="truncate">{contact.email}</dd>
-                </div>
-              )}
-              {contact.phone && (
-                <div className="flex items-center gap-3">
-                  <dt className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-50 text-purple-600">📱</dt>
-                  <dd>{contact.phone}</dd>
-                </div>
-              )}
-              {contact.website && (
-                <div className="flex items-center gap-3">
-                  <dt className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-50 text-purple-600">🌐</dt>
-                  <dd className="truncate">{contact.website}</dd>
-                </div>
-              )}
-              {resolvedProfile.availability && (
-                <div className="flex items-center gap-3">
-                  <dt className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-50 text-purple-600">📆</dt>
-                  <dd>{resolvedProfile.availability}</dd>
-                </div>
-              )}
-            </dl>
-            <button className="mt-6 w-full rounded-full bg-gradient-to-r from-purple-600 to-pink-500 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md">
-              Request a session
-            </button>
-          </div>
-        </aside>
-      </section>
-
-      <section className="grid gap-4 md:gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-4 md:space-y-6">
-          <div className="rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-800">Current learning plan</h3>
-              {currentCourses.length > 0 && <span className="text-xs font-medium uppercase tracking-wider text-purple-500">{currentCourses.length} active</span>}
-            </div>
-            <div className="mt-6 space-y-5">
-              {currentCourses.map((course) => (
-                <div key={course.title} className="rounded-2xl border border-gray-100 p-5 transition hover:shadow-md">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+              {isEditing ? (
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveProfile(); }}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-800">{course.title}</h4>
-                      <p className="mt-1 text-xs text-gray-500">Next · {course.nextLesson}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">NAME</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
                     </div>
-                    <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-600">
-                      {course.progress}% complete
-                    </span>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">EMAIL</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
                   </div>
-                  <div className="mt-4 h-2 w-full rounded-full bg-gray-200">
-                    <div
-                      className={`h-2 rounded-full bg-gradient-to-r ${course.color}`}
-                      style={{ width: `${Math.min(Math.max(course.progress, 0), 100)}%` }}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">PHONE</label>
+                      <input
+                        type="tel"
+                        value={formData.phoneNo}
+                        onChange={(e) => handleInputChange('phoneNo', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">LINKEDIN</label>
+                      <input
+                        type="url"
+                        value={formData.linkedin}
+                        onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="https://linkedin.com/in/ashutosh"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">WEBSITE</label>
+                      <input
+                        type="url"
+                        value={formData.website}
+                        onChange={(e) => handleInputChange('website', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="https://website.com/ashutosh"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Professional Information</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">EDUCATION</label>
+                        <input
+                          type="text"
+                          value={formData.education}
+                          onChange={(e) => handleInputChange('education', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="BE CSE INFORMATION TECHNOLOGY"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">DESIGNATION</label>
+                        <input
+                          type="text"
+                          value={formData.designation}
+                          onChange={(e) => handleInputChange('designation', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="SOFTWARE ENGINEER"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">OCCUPATION</label>
+                      <input
+                        type="text"
+                        value={formData.occupation}
+                        onChange={(e) => handleInputChange('occupation', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="ASSOCIATE ENGINEER"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">AREAS OF INTEREST</label>
+                    
+                    {/* Current Interests Display */}
+                    <div className="mb-3">
+                      {formData.areasOfInterest.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.areasOfInterest.map((interest, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium group hover:bg-purple-200 transition-colors"
+                            >
+                              <span>{interest}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeInterest(index)}
+                                className="text-purple-500 hover:text-purple-700 transition-colors"
+                                title="Remove interest"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm italic">No interests added yet</p>
+                      )}
+                    </div>
+
+                    {/* Add New Interest */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newInterest}
+                        onChange={(e) => setNewInterest(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Add a new interest (e.g., ReactJS, NodeJS)"
+                      />
+                      <button
+                        type="button"
+                        onClick={addInterest}
+                        disabled={!newInterest.trim() || formData.areasOfInterest.includes(newInterest.trim())}
+                        className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500 font-medium">NAME</span>
+                      <p className="text-gray-900">{profile?.name || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 font-medium">EMAIL</span>
+                      <p className="text-gray-900">{profile?.email || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 font-medium">PHONE</span>
+                      <p className="text-gray-900">{profile?.phoneNo || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 font-medium">LINKEDIN</span>
+                      {profile?.linkedin ? (
+                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 break-all text-sm block flex items-center gap-1">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                          </svg>
+                          {profile.linkedin.replace(/^https?:\/\//, '')}
+                        </a>
+                      ) : (
+                        <p className="text-gray-500">Not specified</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-gray-500 font-medium">WEBSITE</span>
+                      {profile?.website ? (
+                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 break-all text-sm block">
+                          {profile.website}
+                        </a>
+                      ) : (
+                        <p className="text-gray-500">Not specified</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Professional Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500 font-medium">EDUCATION</span>
+                        <p className="text-gray-900">{profile?.education || 'BE CSE INFORMATION TECHNOLOGY'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 font-medium">DESIGNATION</span>
+                        <p className="text-gray-900">{profile?.designation || 'SOFTWARE ENGINEER'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 text-sm">
+                      <span className="text-gray-500 font-medium">OCCUPATION</span>
+                      <p className="text-gray-900">{profile?.occupation || 'ASSOCIATE ENGINEER'}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <span className="text-gray-500 font-medium text-sm">AREAS OF INTEREST</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {profile?.areasOfInterest && profile.areasOfInterest.length > 0 ? (
+                        profile.areasOfInterest.map((interest, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm font-medium border border-purple-200 shadow-sm"
+                          >
+                            {interest}
+                          </span>
+                        ))
+                      ) : (
+                        <div className="w-full py-8 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            <p className="text-sm">No interests added yet</p>
+                            <p className="text-xs mt-1">Click edit to add your areas of interest</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* My Classes Section - Only show for own profile */}
+          {isOwnProfile && (
+            <div className="space-y-6">
+            {/* Classes Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">My Classes</h2>
+                  <p className="text-white/80 text-sm mt-1">
+                    {dateFilter ? `Classes from ${new Date(dateFilter).toLocaleDateString()}` : 
+                     showAllClasses ? 'All courses' : 'Latest 4 courses'} • Sorted by date
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
+                    {getFilteredClasses().length} of {myClasses.length} courses
+                  </span>
+                  
+                  {/* Date Filter Button */}
+                  <button
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                    className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {dateFilter ? 'Clear Date' : 'Filter by Date'}
+                  </button>
+
+                  {/* See All Button */}
+                  {myClasses.length > 4 && !dateFilter && (
+                    <button
+                      onClick={() => setShowAllClasses(!showAllClasses)}
+                      className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      {showAllClasses ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                          Show Recent
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          See All
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Date Filter Input */}
+              {showDateFilter && (
+                <div className="border-t border-white/20 pt-4 mt-4">
+                  <div className="flex items-center gap-3">
+                    <label className="text-white/90 text-sm font-medium">Filter by date:</label>
+                    <input
+                      type="date"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="px-3 py-2 rounded-lg text-gray-900 text-sm border border-white/30 bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50"
                     />
+                    {dateFilter && (
+                      <button
+                        onClick={clearDateFilter}
+                        className="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
-              {currentCourses.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-gray-500">
-                  Add a course from your dashboard to personalize this plan.
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-gray-100">
-            <h3 className="text-base font-semibold text-gray-800">Recent activity</h3>
-            <div className="mt-4 md:mt-6 space-y-4 md:space-y-5">
-              {activity.map((item) => (
-                <div key={`${item.title}-${item.time}`} className="flex items-start gap-4">
-                  <div className="relative mt-1 flex h-3 w-3 items-center justify-center">
-                    <span className="h-3 w-3 rounded-full bg-purple-500" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-gray-800">{item.title}</p>
-                      <span className="text-xs text-gray-400">{item.time}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-gray-500">{item.description}</p>
-                  </div>
+            {/* Classes List */}
+            <div className="space-y-4">
+              {loadingClasses ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
                 </div>
-              ))}
-              {activity.length === 0 && (
-                <p className="text-sm text-gray-500">Activity will appear here as you engage with LinkedSkill content.</p>
+              ) : myClasses.length === 0 ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No courses yet</h3>
+                  <p className="text-gray-600">Start learning by enrolling in your first course!</p>
+                </div>
+              ) : (
+                getFilteredClasses().map((classItem) => (
+                  <div key={classItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    {editingClass === classItem._id ? (
+                      // Edit Mode
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Class Title</label>
+                          <input
+                            type="text"
+                            value={classFormData.title}
+                            onChange={(e) => handleClassInputChange('title', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Enter class title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <textarea
+                            value={classFormData.description}
+                            onChange={(e) => handleClassInputChange('description', e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Enter class description"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                          <input
+                            type="date"
+                            value={classFormData.date}
+                            onChange={(e) => handleClassInputChange('date', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={() => saveClass(classItem._id)}
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            onClick={handleClassCancel}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View Mode
+                      <div>
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 text-lg mb-2">{classItem.title}</h3>
+                            <p className="text-gray-600 text-sm mb-3">{classItem.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                </svg>
+                                {new Date(classItem.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => deleteClass(classItem._id)}
+                              className="p-2 text-gray-400 hover:text-red-500 transition"
+                              title="Delete class"
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V7zM12 7a1 1 0 012 0v4a1 1 0 11-2 0V7z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                            <button 
+                              onClick={() => handleClassEdit(classItem)}
+                              className="p-2 text-gray-400 hover:text-blue-500 transition"
+                              title="Edit class"
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
               )}
             </div>
           </div>
+          )}
         </div>
-
-        <div className="space-y-4 md:space-y-6">
-          <div className="rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-gray-100">
-            <h3 className="text-base font-semibold text-gray-800">Skill highlights</h3>
-            <div className="mt-4 flex flex-wrap gap-2 md:gap-3">
-              {skills.map((skill) => (
-                <span key={skill} className="rounded-full border border-purple-100 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-600">
-                  {skill}
-                </span>
-              ))}
-              {skills.length === 0 && (
-                <span className="text-sm text-gray-500">Add skills from your profile settings to showcase your strengths.</span>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-gray-100">
-            <h3 className="text-base font-semibold text-gray-800">Achievements & credentials</h3>
-            <ul className="mt-4 space-y-3 md:space-y-4 text-sm text-gray-600">
-              {achievements.map((achievement) => (
-                <li key={`${achievement.title}-${achievement.date}`} className="rounded-2xl border border-gray-100 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-gray-800">{achievement.title}</p>
-                    <span className="text-xs text-gray-400">{achievement.date}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-500">{achievement.description}</p>
-                </li>
-              ))}
-              {achievements.length === 0 && (
-                <li className="rounded-2xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">
-                  Unlock achievements by completing LinkedSkill learning paths and experiences.
-                </li>
-              )}
-            </ul>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   )
 }

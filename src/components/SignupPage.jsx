@@ -1,17 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+
+const API_URL = 'http://localhost:4000'
 
 export default function SignupPage({ onSignup, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phoneNo: '',
+    roleId: '',
     password: '',
     confirmPassword: '',
     agreeToTerms: false
   })
 
   const [errors, setErrors] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [roles, setRoles] = useState([])
+  const [rolesLoading, setRolesLoading] = useState(true)
 
-  const handleSubmit = (e) => {
+  // Fetch roles when component mounts
+  useEffect(() => {
+    fetchRoles()
+  }, [])
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch(`${API_URL}/roles`)
+      const data = await response.json()
+      setRoles(data.roles || [])
+      setRolesLoading(false)
+    } catch (error) {
+      console.error('Error fetching roles:', error)
+      setRolesLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const newErrors = {}
 
@@ -31,9 +56,46 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
       return
     }
 
-    console.log('Signup:', formData)
-    // Here you would typically call your registration API
-    onSignup && onSignup(formData)
+    setLoading(true)
+    setErrors({})
+    setSuccessMessage('')
+
+    try {
+      const response = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.fullName,
+          phoneNo: parseInt(formData.phoneNo),
+          roleId: formData.roleId
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Signup failed')
+      }
+
+      // Don't store token - user needs to login
+      setSuccessMessage('Account created successfully! Redirecting to login...')
+      
+      // Redirect to login page after short delay
+      setTimeout(() => {
+        if (onSwitchToLogin) {
+          onSwitchToLogin()
+        }
+      }, 2000)
+
+    } catch (error) {
+      setErrors({ api: error.message })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -47,6 +109,20 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+            {/* Error Message */}
+            {errors.api && (
+              <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                {errors.api}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="bg-green-50 border-2 border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+                {successMessage}
+              </div>
+            )}
+
             {/* Full Name Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -75,6 +151,45 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 placeholder="you@example.com"
                 className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
               />
+            </div>
+
+            {/* Phone Number Field */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.phoneNo}
+                onChange={(e) => setFormData({ ...formData, phoneNo: e.target.value })}
+                placeholder="1234567890"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+              />
+            </div>
+
+            {/* Role Field */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Role
+              </label>
+              <select
+                required
+                value={formData.roleId}
+                onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                disabled={rolesLoading}
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">Select a role</option>
+                {roles.map((role) => (
+                  <option key={role._id} value={role._id}>
+                    {role.displayName}
+                  </option>
+                ))}
+              </select>
+              {rolesLoading && (
+                <p className="text-sm text-gray-500 mt-1">Loading roles...</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -141,9 +256,10 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 mt-2"
+              disabled={loading}
+              className={`w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 mt-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Create Account
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
 
             {/* Divider */}

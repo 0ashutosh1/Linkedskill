@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import ProfilePage from './components/ProfilePage'
 import ReferencePage from './components/ReferencePage'
 import ExpertsPage from './components/ExpertsPage'
+import NotificationsPage from './components/NotificationsPage'
 import AddClassModal from './components/AddClassModal'
 import LoginPage from './components/LoginPage'
 import SignupPage from './components/SignupPage'
@@ -11,15 +12,13 @@ import RightPanel from './components/RightPanel'
 import CourseCard from './components/CourseCard'
 import CategorySection from './components/CategorySection'
 import ClassSection from './components/ClassSection'
+import ChatModal from './components/ChatModal'
+import { isAuthenticated as checkAuth, logout as doLogout } from './utils/auth'
+import { getMyConnections } from './utils/connections'
+import logo from './assets/LinkedSkill.jpg'
 
 export default function App() {
-  const [mentors, setMentors] = useState([
-    { id: 1, name: 'Alex Morgan', date: '25/02/2023', type: 'Frontend', title: 'Understanding Concept Of React' },
-    { id: 2, name: 'Nikolas Helmet', date: '18/03/2023', type: 'Backend', title: 'Concept Of The Data Base' },
-  ])
 
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ name: '', date: '', type: '', title: '' })
   const [route, setRoute] = useState('home')
   const [selectedProfile, setSelectedProfile] = useState(null)
   const [currentCourse, setCurrentCourse] = useState(null)
@@ -27,35 +26,132 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authPage, setAuthPage] = useState('login') // 'login' or 'signup'
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [categoryClasses, setCategoryClasses] = useState([])
+  const [loadingClasses, setLoadingClasses] = useState(false)
 
-  function handleEdit(m) {
-    setEditingId(m.id)
-    setForm({ name: m.name, date: m.date, type: m.type, title: m.title })
+  // Connected Experts and Chat states
+  const [connectedExperts, setConnectedExperts] = useState([])
+  const [connectionsLoading, setConnectionsLoading] = useState(false)
+
+  const [selectedChatExpert, setSelectedChatExpert] = useState(null)
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState({}) // Messages grouped by expert ID
+
+  // Check if user is already authenticated on mount
+  useEffect(() => {
+    const authenticated = checkAuth()
+    setIsAuthenticated(authenticated)
+    
+    // Fetch connected experts if authenticated
+    if (authenticated) {
+      fetchConnectedExperts()
+    }
+  }, [])
+
+  // Fetch connected experts
+  const fetchConnectedExperts = async () => {
+    setConnectionsLoading(true)
+    try {
+      const connections = await getMyConnections()
+      setConnectedExperts(connections)
+    } catch (error) {
+      console.error('Error fetching connected experts:', error)
+      setConnectedExperts([])
+    } finally {
+      setConnectionsLoading(false)
+    }
   }
 
-  function handleCancel() {
-    setEditingId(null)
-    setForm({ name: '', date: '', type: '', title: '' })
-  }
 
-  function handleSave(id) {
-    setMentors(mentors.map((m) => (m.id === id ? { ...m, ...form } : m)))
-    handleCancel()
-  }
 
   function handleLogin(data) {
     console.log('Login successful:', data)
     setIsAuthenticated(true)
+    setRoute('home')
+    fetchConnectedExperts() // Fetch connections after login
   }
 
   function handleSignup(data) {
     console.log('Signup successful:', data)
     setIsAuthenticated(true)
+    setRoute('home')
+    fetchConnectedExperts() // Fetch connections after signup
   }
 
   function handleLogout() {
-    setIsAuthenticated(false)
-    setRoute('home')
+    doLogout() // This will clear localStorage and redirect
+  }
+
+  // Expert Chat Functions
+  function handleExpertChatClick(expert) {
+    setSelectedChatExpert({
+      ...expert,
+      connectionId: expert.connectionId // This should come from the connected experts data
+    })
+    setIsChatModalOpen(true)
+  }
+
+  function handleExpertProfileClick(expert) {
+    setSelectedProfile(expert)
+    setRoute('profile')
+  }
+
+  // Student Chat Functions (for experts)
+  function handleStudentChatClick(student) {
+    setSelectedChatExpert({
+      ...student,
+      connectionId: student.connectionId // This should come from the connected students data
+    })
+    setIsChatModalOpen(true)
+  }
+
+  function handleStudentProfileClick(student) {
+    setSelectedProfile(student)
+    setRoute('profile')
+  }
+
+  function handleSendMessage(message, expertId) {
+    setChatMessages(prev => ({
+      ...prev,
+      [expertId]: [...(prev[expertId] || []), message]
+    }))
+  }
+
+  function handleCloseChatModal() {
+    setIsChatModalOpen(false)
+    setSelectedChatExpert(null)
+  }
+
+  // Fetch classes by category
+  async function handleCategoryClick(category) {
+    console.log('Selected category:', category.name);
+    setSelectedCategory(category);
+    setLoadingClasses(true);
+    
+    try {
+      const response = await fetch(`http://localhost:4000/classes?categoryId=${category._id}`);
+      const data = await response.json();
+      
+      // Transform backend data to match frontend format
+      const transformedClasses = (data.classes || []).map(cls => ({
+        title: cls.title,
+        tag: category.name,
+        author: 'Expert Instructor',
+        date: new Date(cls.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: '2h 30m',
+        description: cls.description,
+        learners: cls.interestedCount?.toString() || '0',
+        level: 'Intermediate'
+      }));
+      
+      setCategoryClasses(transformedClasses);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setCategoryClasses([]);
+    } finally {
+      setLoadingClasses(false);
+    }
   }
 
   // Show login/signup pages if not authenticated
@@ -69,18 +165,30 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       <AddClassModal isOpen={isAddClassModalOpen} onClose={() => setIsAddClassModalOpen(false)} />
+      <ChatModal 
+        isOpen={isChatModalOpen} 
+        onClose={handleCloseChatModal}
+        expert={selectedChatExpert}
+        connectionId={selectedChatExpert?.connectionId}
+      />
       
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-40 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src="/src/assets/logo.svg" alt="logo" className="w-8 h-8" onClick={() => { setRoute('home'); setSelectedProfile(null); }} />
-          <div className="text-lg font-semibold text-purple-600">LinkedSkill</div>
+      {/* Mobile Header - Enhanced responsive design */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-40 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <img 
+            src={logo} 
+            alt="LinkedSkill Logo" 
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover cursor-pointer" 
+            onClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
+          />
+          <div className="text-base sm:text-lg font-semibold text-purple-600">LinkedSkill</div>
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMobileMenuOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
             ) : (
@@ -90,57 +198,130 @@ export default function App() {
         </button>
       </div>
 
-      <div className="lg:w-full lg:bg-white lg:rounded-2xl lg:shadow-lg overflow-visible grid grid-cols-1 lg:grid-cols-12 pt-16 lg:pt-0">
-        {/* Sidebar - Desktop & Mobile Drawer */}
-        <aside className={`
-          fixed lg:static inset-y-0 left-0 z-50 w-64 lg:w-auto lg:col-span-2 bg-white border-r
-          transform transition-transform duration-300 ease-in-out lg:transform-none
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          pt-16 lg:pt-6 px-4 pb-6 overflow-y-auto
-        `}>
-          <Sidebar 
-            onLogoClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
-            onFriendClick={(p) => { setSelectedProfile(p); setRoute('profile'); setIsMobileMenuOpen(false); }} 
-            onNavClick={(r) => { if (r === 'addclass') setIsAddClassModalOpen(true); else setRoute(r); setIsMobileMenuOpen(false); }} 
-            onLogout={handleLogout} 
-          />
-        </aside>
+      {/* Main Layout Container - Improved responsive grid */}
+      <div className="min-h-screen lg:min-h-0 lg:bg-white lg:rounded-2xl lg:shadow-lg lg:m-4 xl:m-6 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen lg:min-h-0">
+          {/* Sidebar - Enhanced mobile drawer */}
+          <aside className={`
+            fixed lg:static inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:col-span-2 
+            bg-white border-r lg:border-r-gray-200
+            transform transition-transform duration-300 ease-in-out lg:transform-none
+            ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            pt-14 sm:pt-16 lg:pt-0 overflow-y-auto
+            shadow-2xl lg:shadow-none
+          `}>
+            <div className="h-full px-3 sm:px-4 lg:px-0 pb-6">
+              <Sidebar 
+                onLogoClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
+                onFriendClick={(p) => { setSelectedProfile(p); setRoute('profile'); setIsMobileMenuOpen(false); }} 
+                onNavClick={(r) => { if (r === 'addclass') setIsAddClassModalOpen(true); else setRoute(r); setIsMobileMenuOpen(false); }} 
+                onLogout={handleLogout} 
+              />
+            </div>
+          </aside>
 
-        {/* Overlay for mobile menu */}
-        {isMobileMenuOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-        )}
-
-        <main className={`${route === 'home' ? 'lg:col-span-8' : 'lg:col-span-10'} p-4 md:p-6 lg:p-10 overflow-visible`}>
-          {route !== 'experts' && (
-            <header className="mb-4 md:mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-2 md:gap-4 flex-1">
-                <img src="/src/assets/logo.svg" alt="logo" className="w-8 h-8 md:w-10 md:h-10 cursor-pointer hidden lg:block" onClick={() => { setRoute('home'); setSelectedProfile(null); }} />
-                <div className="relative w-full max-w-md">
-                  <input placeholder="Search your course here..." className="w-full border rounded-full pl-4 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300" />
-                  <button className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">🔍</button>
-                </div>
-              </div>
-            </header>
+          {/* Overlay for mobile menu - Improved interaction */}
+          {isMobileMenuOpen && (
+            <div 
+              className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+              onTouchStart={() => setIsMobileMenuOpen(false)}
+            />
           )}
 
-          {route === 'home' ? (
-          <>
-          <section className="mb-4 md:mb-6">
-            <div className="bg-gradient-to-r from-purple-400 to-pink-300 text-white rounded-xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="text-xs md:text-sm uppercase tracking-wider">Online Course</div>
-                <h2 className="text-lg md:text-2xl font-semibold mt-1">Sharpen Your Skills With Professional Online Courses</h2>
-                <button className="mt-3 md:mt-4 bg-white text-purple-600 px-4 py-2 rounded-full font-semibold text-sm">Join Now</button>
-              </div>
-              <div className="w-32 h-20 md:w-48 md:h-28 bg-white/20 rounded-lg flex-shrink-0" />
-            </div>
-          </section>
+          {/* Main Content Area - Better responsive spacing with visible overflow for popups */}
+          <main className={`
+            ${route === 'home' ? 'lg:col-span-8' : 'lg:col-span-10'} 
+            pt-14 sm:pt-16 lg:pt-0 
+            px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 
+            py-4 sm:py-6 lg:py-8 xl:py-10
+            overflow-visible
+            min-h-screen lg:min-h-0
+          `} style={{ overflow: 'visible' }}>
+            {/* Enhanced responsive header */}
+            {route !== 'experts' && (
+              <header className="mb-4 sm:mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 w-full sm:w-auto">
+                  <img 
+                    src={logo} 
+                    alt="LinkedSkill Logo" 
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover cursor-pointer hidden lg:block" 
+                    onClick={() => { setRoute('home'); setSelectedProfile(null); }} 
+                  />
+                  <div className="relative w-full sm:max-w-md lg:max-w-lg">
+                    <input 
+                      placeholder="Search your course here..." 
+                      className="w-full border border-gray-200 rounded-full pl-4 pr-10 py-2 sm:py-2.5 text-sm sm:text-base 
+                                focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent
+                                bg-white shadow-sm hover:shadow-md transition-shadow" 
+                    />
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </header>
+            )}
 
-          <CategorySection onCategoryClick={(cat) => console.log('Selected category:', cat.name)} />
+            {route === 'home' ? (
+              <>
+                {/* Enhanced responsive hero section */}
+                <section className="mb-4 sm:mb-6 lg:mb-8">
+                  <div className="bg-gradient-to-r from-purple-400 via-purple-500 to-pink-400 text-white rounded-xl sm:rounded-2xl 
+                                  p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6 lg:gap-8
+                                  shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div className="flex-1 text-center lg:text-left">
+                      <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-2">Online Course</div>
+                      <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight mb-3 sm:mb-4">
+                        Sharpen Your Skills With Professional Online Courses
+                      </h2>
+                      <button className="bg-white text-purple-600 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-semibold 
+                                       text-sm sm:text-base hover:bg-gray-50 transform hover:scale-105 transition-all duration-200
+                                       shadow-md hover:shadow-lg">
+                        Join Now
+                      </button>
+                    </div>
+                    <div className="w-full max-w-[200px] h-20 sm:h-24 lg:w-48 lg:h-28 bg-white/20 rounded-lg sm:rounded-xl flex-shrink-0
+                                    backdrop-blur-sm border border-white/30" />
+                  </div>
+                </section>
+
+          <CategorySection onCategoryClick={handleCategoryClick} />
+
+          {/* Show filtered classes if a category is selected */}
+          {selectedCategory && (
+            <>
+              {loadingClasses ? (
+                <section className="mb-6 md:mb-8">
+                  <h3 className="text-base md:text-xl font-semibold text-gray-800 mb-4">
+                    {selectedCategory.name} Classes
+                  </h3>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+                  </div>
+                </section>
+              ) : categoryClasses.length > 0 ? (
+                <ClassSection 
+                  title={`${selectedCategory.name} Classes (${categoryClasses.length})`}
+                  classes={categoryClasses}
+                  onSeeAll={() => console.log('See all')}
+                  onJoin={(cls) => console.log('Join:', cls)}
+                  onSelect={(cls) => console.log('Select:', cls)}
+                />
+              ) : (
+                <section className="mb-6 md:mb-8">
+                  <h3 className="text-base md:text-xl font-semibold text-gray-800 mb-4">
+                    {selectedCategory.name} Classes
+                  </h3>
+                  <div className="bg-white rounded-xl p-6 text-center text-gray-500">
+                    No classes available in this category yet.
+                  </div>
+                </section>
+              )}
+            </>
+          )}
 
           {/* Upcoming Classes */}
           <ClassSection 
@@ -342,86 +523,37 @@ export default function App() {
             onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
           />
 
-          <section>
-            <h3 className="text-base md:text-lg font-semibold mb-3">Your Mentor</h3>
-            <div className="bg-white rounded-xl p-4 shadow-sm overflow-x-auto">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead className="text-left text-xs text-gray-400">
-                  <tr>
-                    <th className="pb-2">Instructor Name & Date</th>
-                    <th className="pb-2">Course Type</th>
-                    <th className="pb-2">Course Title</th>
-                    <th className="pb-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mentors.map((m) => (
-                    <tr className="border-t" key={m.id}>
-                      <td className="py-3">
-                        {editingId === m.id ? (
-                          <div>
-                            <input className="w-full border rounded px-2 py-1 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                            <input className="w-full border rounded px-2 py-1 text-xs mt-1 text-gray-500" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                          </div>
-                        ) : (
-                          <>
-                            <div>{m.name}</div>
-                            <div className="text-xs text-gray-400">{m.date}</div>
-                          </>
-                        )}
-                      </td>
+              </>
+            ) : route === 'profile' ? (
+              <ProfilePage profile={selectedProfile} onBack={() => { setRoute('home'); setSelectedProfile(null); }} />
+            ) : route === 'references' ? (
+              <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
+            ) : route === 'experts' ? (
+              <ExpertsPage onBack={() => setRoute('home')} />
+            ) : route === 'notifications' ? (
+              <NotificationsPage onBack={() => setRoute('home')} />
+            ) : null }
+          </main>
 
-                      <td className="py-3">
-                        {editingId === m.id ? (
-                          <select className="border rounded px-2 py-1 text-sm" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                            <option>Frontend</option>
-                            <option>Backend</option>
-                            <option>Design</option>
-                          </select>
-                        ) : (
-                          <span className={`text-xs px-2 py-1 rounded-full ${m.type === 'Frontend' ? 'bg-pink-100 text-pink-600' : 'bg-indigo-100 text-indigo-600'}`}>{m.type}</span>
-                        )}
-                      </td>
-
-                      <td className="py-3">
-                        {editingId === m.id ? (
-                          <input className="w-full border rounded px-2 py-1 text-sm" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                        ) : (
-                          m.title
-                        )}
-                      </td>
-
-                      <td className="py-3 text-right">
-                        {editingId === m.id ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button className="text-sm bg-green-600 text-white px-3 py-1 rounded" onClick={() => handleSave(m.id)}>Save</button>
-                            <button className="text-sm bg-gray-200 px-3 py-1 rounded" onClick={handleCancel}>Cancel</button>
-                          </div>
-                        ) : (
-                          <button className="text-sm text-indigo-600" onClick={() => handleEdit(m)} title="Edit">✏️</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-          </>
-          ) : route === 'profile' ? (
-            <ProfilePage profile={selectedProfile} onBack={() => { setRoute('home'); setSelectedProfile(null); }} />
-          ) : route === 'references' ? (
-            <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
-          ) : route === 'experts' ? (
-            <ExpertsPage onBack={() => setRoute('home')} />
-          ) : null }
-        </main>
-
-        {route === 'home' && (
-          <aside className="lg:col-span-2 bg-white border-t lg:border-t-0 lg:border-l px-4 py-6">
-            <RightPanel onProfileClick={() => { setSelectedProfile({ id: 'me', name: 'Alex Morgan', role: 'Software Developer' }); setRoute('profile'); }} onReferencesClick={() => setRoute('references')} />
-          </aside>
-        )}
+          {/* Enhanced responsive right panel */}
+          {route === 'home' && (
+            <aside className="lg:col-span-2 border-t lg:border-t-0 lg:border-l lg:border-gray-200 bg-white
+                             px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8
+                             order-first lg:order-last">
+              <RightPanel 
+                onProfileClick={() => { setSelectedProfile({ id: 'me', name: 'Alex Morgan', role: 'Software Developer' }); setRoute('profile'); }} 
+                onReferencesClick={() => setRoute('references')}
+                onNotificationsClick={() => setRoute('notifications')}
+                connectedExperts={connectedExperts}
+                onExpertChatClick={handleExpertChatClick}
+                onExpertProfileClick={handleExpertProfileClick}
+                onStudentChatClick={handleStudentChatClick}
+                onStudentProfileClick={handleStudentProfileClick}
+                connectionsLoading={connectionsLoading}
+              />
+            </aside>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -1,12 +1,4 @@
-import React, { useState } from 'react'
-
-const categories = {
-  'Frontend Development': ['React', 'Vue', 'Angular', 'HTML/CSS', 'JavaScript'],
-  'Backend Development': ['Node.js', 'Python', 'Java', 'PHP', 'Database'],
-  'Design': ['UI Design', 'UX Design', 'Graphic Design', 'Figma', 'Adobe XD'],
-  'Data Science': ['Machine Learning', 'Data Analysis', 'Python', 'R', 'Statistics'],
-  'Mobile Development': ['React Native', 'Flutter', 'iOS', 'Android', 'Kotlin']
-}
+import React, { useState, useEffect } from 'react'
 
 export default function AddClassModal({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
@@ -14,36 +6,119 @@ export default function AddClassModal({ isOpen, onClose }) {
     description: '',
     date: '',
     time: '',
-    category: '',
-    subcategory: ''
+    categoryId: '',
+    subCategoryId: ''
   })
 
+  const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch categories when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories()
+    }
+  }, [isOpen])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/categories')
+      const data = await response.json()
+      setCategories(data.categories || [])
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      setLoading(false)
+    }
+  }
+
+  const fetchSubCategories = async (categoryId) => {
+    try {
+      const response = await fetch(`http://localhost:4000/subcategories/category/${categoryId}`)
+      const data = await response.json()
+      setSubcategories(data.subCategories || [])
+    } catch (error) {
+      console.error('Error fetching subcategories:', error)
+      setSubcategories([])
+    }
+  }
 
   if (!isOpen) return null
 
   const handleCategoryChange = (e) => {
-    const selectedCategory = e.target.value
-    setFormData({ ...formData, category: selectedCategory, subcategory: '' })
-    setSubcategories(categories[selectedCategory] || [])
+    const selectedCategoryId = e.target.value
+    setFormData({ ...formData, categoryId: selectedCategoryId, subCategoryId: '' })
+    if (selectedCategoryId) {
+      fetchSubCategories(selectedCategoryId)
+    } else {
+      setSubcategories([])
+    }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Class submitted:', formData)
-    // Here you would typically send the data to your backend
-    alert('Class added successfully!')
-    onClose()
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      category: '',
-      subcategory: ''
-    })
-    setSubcategories([])
+    
+    try {
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('authToken')
+      
+      if (!token) {
+        alert('Please login first to create a class')
+        return
+      }
+
+      // Combine date and time into a single DateTime
+      const dateTime = new Date(`${formData.date}T${formData.time}`)
+
+      // Prepare the data for the backend
+      const classData = {
+        title: formData.title,
+        description: formData.description,
+        date: dateTime.toISOString(),
+        image: '', // You can add image upload later
+        categoryId: formData.categoryId || undefined,
+        subCategoryId: formData.subCategoryId || undefined
+      }
+
+      console.log('Sending class data:', classData)
+
+      // Send to backend API
+      const response = await fetch('http://localhost:4000/classes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(classData)
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        alert('Class added successfully to MongoDB!')
+        console.log('Created class:', result)
+        onClose()
+        // Reset form
+        setFormData({
+          title: '',
+          description: '',
+          date: '',
+          time: '',
+          categoryId: '',
+          subCategoryId: ''
+        })
+        setSubcategories([])
+        // Optionally reload the page or update the class list
+        window.location.reload()
+      } else {
+        alert(`Failed to create class: ${result.error || 'Unknown error'}`)
+        console.error('Error:', result)
+      }
+    } catch (error) {
+      console.error('Error creating class:', error)
+      alert('Failed to create class. Please check console for details.')
+    }
   }
 
   return (
@@ -133,39 +208,41 @@ export default function AddClassModal({ isOpen, onClose }) {
           {/* Category Dropdown */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Category <span className="text-red-500">*</span>
+              Category
             </label>
             <select
-              required
-              value={formData.category}
+              value={formData.categoryId}
               onChange={handleCategoryChange}
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white"
+              disabled={loading}
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <option value="">Select a category</option>
-              {Object.keys(categories).map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+              <option value="">Select a category (optional)</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
               ))}
             </select>
+            {loading && (
+              <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
+            )}
           </div>
 
           {/* Subcategory Dropdown */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Subcategory <span className="text-red-500">*</span>
+              Subcategory
             </label>
             <select
-              required
-              disabled={!formData.category}
-              value={formData.subcategory}
-              onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+              disabled={!formData.categoryId}
+              value={formData.subCategoryId}
+              onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
               className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <option value="">Select a subcategory</option>
+              <option value="">Select a subcategory (optional)</option>
               {subcategories.map((subcat) => (
-                <option key={subcat} value={subcat}>{subcat}</option>
+                <option key={subcat._id} value={subcat._id}>{subcat.name}</option>
               ))}
             </select>
-            {!formData.category && (
+            {!formData.categoryId && (
               <p className="text-sm text-gray-500 mt-1">Please select a category first</p>
             )}
           </div>

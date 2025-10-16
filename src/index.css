@@ -96,6 +96,18 @@ body{
   }
 }
 
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out;
 }
@@ -110,6 +122,28 @@ body{
 
 .animate-scaleIn {
   animation: scaleIn 0.3s ease-out;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Enhanced hover card styles */
+.hover-card {
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Ensure popups are always visible */
+.popup-container {
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
+}
+
+.popup-container:hover {
+  z-index: 1000;
 }
 
 /* Smooth transitions */
