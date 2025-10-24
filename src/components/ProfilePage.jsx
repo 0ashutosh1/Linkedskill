@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { CompactCountdownTimer } from './CountdownTimer'
+import { classAPI } from '../utils/classAPI'
 
 const API_URL = 'http://localhost:4000'
 
@@ -33,6 +35,8 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
   const [showAllClasses, setShowAllClasses] = useState(false)
   const [dateFilter, setDateFilter] = useState('')
   const [showDateFilter, setShowDateFilter] = useState(false)
+  const [startingClass, setStartingClass] = useState(null)
+  const [classStartStates, setClassStartStates] = useState({})
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -55,6 +59,25 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
         photoUrl: passedProfile.photoUrl || ''
       })
       setLoading(false)
+    }
+  }, [isOwnProfile]) // Only depend on isOwnProfile, not passedProfile to prevent infinite loops
+
+  // Handle passedProfile changes separately 
+  useEffect(() => {
+    if (!isOwnProfile && passedProfile) {
+      setProfile(passedProfile)
+      setFormData({
+        name: passedProfile.name || '',
+        email: passedProfile.email || '',
+        phoneNo: passedProfile.phoneNo || '',
+        education: passedProfile.education || '',
+        areasOfInterest: passedProfile.areasOfInterest || [],
+        occupation: passedProfile.occupation || '',
+        designation: passedProfile.designation || '',
+        linkedin: passedProfile.linkedin || '',
+        website: passedProfile.website || '',
+        photoUrl: passedProfile.photoUrl || ''
+      })
     }
   }, [passedProfile, isOwnProfile])
 
@@ -367,24 +390,63 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
     }
   }
 
+  const handleStartClass = async (classItem) => {
+    try {
+      setStartingClass(classItem._id)
+      
+      const result = await classAPI.startClass(classItem._id)
+      
+      setMessage({ type: 'success', text: `Class "${classItem.title}" has been started successfully! 🎉` })
+      
+      // Update the class in the local state to reflect the new status
+      setMyClasses(prevClasses => 
+        prevClasses.map(cls => 
+          cls._id === classItem._id 
+            ? { ...cls, status: 'live' }
+            : cls
+        )
+      )
+
+      setTimeout(() => {
+        setMessage({ type: '', text: '' })
+      }, 5000)
+    } catch (error) {
+      console.error('Error starting class:', error)
+      setMessage({ type: 'error', text: `Failed to start class: ${error.message}` })
+      
+      setTimeout(() => {
+        setMessage({ type: '', text: '' })
+      }, 5000)
+    } finally {
+      setStartingClass(null)
+    }
+  }
+
+  const handleCanStartChange = (classId, canStart) => {
+    setClassStartStates(prev => ({
+      ...prev,
+      [classId]: canStart
+    }))
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+          <p className="mt-4 text-gray-300">Loading profile...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <button
           onClick={onBack}
-          className="mb-6 inline-flex items-center gap-2 text-gray-600 hover:text-purple-600 font-medium transition"
+          className="mb-6 inline-flex items-center gap-2 text-gray-400 hover:text-blue-400 font-medium transition"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -408,7 +470,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
           {/* My Profile Section */}
           <div className="space-y-6">
             {/* Profile Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-6 text-white">
               <h2 className="text-2xl font-bold mb-2">
                 {isOwnProfile ? 'My Profile' : `${formData.name || 'User'}'s Profile`}
               </h2>
@@ -418,13 +480,13 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
             </div>
 
             {/* Personal Information */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+                <h3 className="text-lg font-semibold text-gray-200">Personal Information</h3>
                 {isOwnProfile && (
                   <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+                    className="text-blue-400 hover:text-blue-300 font-medium text-sm"
                   >
                     {isEditing ? 'Cancel' : 'Edit'}
                   </button>
@@ -433,7 +495,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
 
               {/* Avatar */}
               <div className="flex items-center mb-6">
-                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
+                <div className="w-20 h-20 bg-slate-700/50 border border-slate-600/50 rounded-full flex items-center justify-center">
                   {profile?.photoUrl ? (
                     <img src={profile.photoUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -443,8 +505,8 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                   )}
                 </div>
                 <div className="ml-4">
-                  <h4 className="font-semibold text-gray-900">{profile?.name || formData.name || 'KUMAR ASHUTOSH'}</h4>
-                  <p className="text-sm text-gray-500">{profile?.email || formData.email || 'COOL.ASHUTOSH@GMAIL.COM'}</p>
+                  <h4 className="font-semibold text-gray-200">{profile?.name || formData.name || 'KUMAR ASHUTOSH'}</h4>
+                  <p className="text-sm text-gray-400">{profile?.email || formData.email || 'COOL.ASHUTOSH@GMAIL.COM'}</p>
                 </div>
               </div>
 
@@ -452,87 +514,87 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                 <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveProfile(); }}>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">NAME</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">NAME</label>
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">EMAIL</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">EMAIL</label>
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">PHONE</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">PHONE</label>
                       <input
                         type="tel"
                         value={formData.phoneNo}
                         onChange={(e) => handleInputChange('phoneNo', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">LINKEDIN</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">LINKEDIN</label>
                       <input
                         type="url"
                         value={formData.linkedin}
                         onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         placeholder="https://linkedin.com/in/ashutosh"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">WEBSITE</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">WEBSITE</label>
                       <input
                         type="url"
                         value={formData.website}
                         onChange={(e) => handleInputChange('website', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         placeholder="https://website.com/ashutosh"
                       />
                     </div>
                   </div>
                   
                   <div className="pt-4 border-t">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Professional Information</h4>
+                    <h4 className="text-sm font-semibold text-gray-300 mb-3">Professional Information</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">EDUCATION</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">EDUCATION</label>
                         <input
                           type="text"
                           value={formData.education}
                           onChange={(e) => handleInputChange('education', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           placeholder="BE CSE INFORMATION TECHNOLOGY"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">DESIGNATION</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">DESIGNATION</label>
                         <input
                           type="text"
                           value={formData.designation}
                           onChange={(e) => handleInputChange('designation', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           placeholder="SOFTWARE ENGINEER"
                         />
                       </div>
                     </div>
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">OCCUPATION</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">OCCUPATION</label>
                       <input
                         type="text"
                         value={formData.occupation}
                         onChange={(e) => handleInputChange('occupation', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         placeholder="ASSOCIATE ENGINEER"
                       />
                     </div>
@@ -548,7 +610,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                           {formData.areasOfInterest.map((interest, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium group hover:bg-purple-200 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 bg-blue-900/30 border border-blue-700/50 text-blue-300 rounded-full text-sm font-medium group hover:bg-blue-800/50 transition-colors"
                             >
                               <span>{interest}</span>
                               <button
@@ -576,7 +638,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                         value={newInterest}
                         onChange={(e) => setNewInterest(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         placeholder="Add a new interest (e.g., ReactJS, NodeJS)"
                       />
                       <button
@@ -614,57 +676,57 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-500 font-medium">NAME</span>
-                      <p className="text-gray-900">{profile?.name || 'Not specified'}</p>
+                      <span className="text-gray-400 font-medium">NAME</span>
+                      <p className="text-gray-200">{profile?.name || 'Not specified'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-500 font-medium">EMAIL</span>
-                      <p className="text-gray-900">{profile?.email || 'Not specified'}</p>
+                      <span className="text-gray-400 font-medium">EMAIL</span>
+                      <p className="text-gray-200">{profile?.email || 'Not specified'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-500 font-medium">PHONE</span>
-                      <p className="text-gray-900">{profile?.phoneNo || 'Not specified'}</p>
+                      <span className="text-gray-400 font-medium">PHONE</span>
+                      <p className="text-gray-200">{profile?.phoneNo || 'Not specified'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-500 font-medium">LINKEDIN</span>
+                      <span className="text-gray-400 font-medium">LINKEDIN</span>
                       {profile?.linkedin ? (
-                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 break-all text-sm block flex items-center gap-1">
+                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 break-all text-sm block flex items-center gap-1">
                           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                           </svg>
                           {profile.linkedin.replace(/^https?:\/\//, '')}
                         </a>
                       ) : (
-                        <p className="text-gray-500">Not specified</p>
+                        <p className="text-gray-400">Not specified</p>
                       )}
                     </div>
                     <div>
-                      <span className="text-gray-500 font-medium">WEBSITE</span>
+                      <span className="text-gray-400 font-medium">WEBSITE</span>
                       {profile?.website ? (
-                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 break-all text-sm block">
+                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 break-all text-sm block">
                           {profile.website}
                         </a>
                       ) : (
-                        <p className="text-gray-500">Not specified</p>
+                        <p className="text-gray-400">Not specified</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Professional Information</h4>
+                  <div className="pt-4 border-t border-slate-600/50">
+                    <h4 className="text-sm font-semibold text-gray-200 mb-3">Professional Information</h4>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500 font-medium">EDUCATION</span>
-                        <p className="text-gray-900">{profile?.education || 'BE CSE INFORMATION TECHNOLOGY'}</p>
+                        <span className="text-gray-400 font-medium">EDUCATION</span>
+                        <p className="text-gray-200">{profile?.education || 'BE CSE INFORMATION TECHNOLOGY'}</p>
                       </div>
                       <div>
-                        <span className="text-gray-500 font-medium">DESIGNATION</span>
-                        <p className="text-gray-900">{profile?.designation || 'SOFTWARE ENGINEER'}</p>
+                        <span className="text-gray-400 font-medium">DESIGNATION</span>
+                        <p className="text-gray-200">{profile?.designation || 'SOFTWARE ENGINEER'}</p>
                       </div>
                     </div>
                     <div className="mt-4 text-sm">
-                      <span className="text-gray-500 font-medium">OCCUPATION</span>
-                      <p className="text-gray-900">{profile?.occupation || 'ASSOCIATE ENGINEER'}</p>
+                      <span className="text-gray-400 font-medium">OCCUPATION</span>
+                      <p className="text-gray-200">{profile?.occupation || 'ASSOCIATE ENGINEER'}</p>
                     </div>
                   </div>
 
@@ -702,7 +764,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
           {isOwnProfile && (
             <div className="space-y-6">
             {/* Classes Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-6 text-white">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-2xl font-bold">My Classes</h2>
@@ -762,7 +824,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                       type="date"
                       value={dateFilter}
                       onChange={(e) => setDateFilter(e.target.value)}
-                      className="px-3 py-2 rounded-lg text-gray-900 text-sm border border-white/30 bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50"
+                      className="px-3 py-2 rounded-lg bg-slate-700/50 border border-slate-600/50 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                     {dateFilter && (
                       <button
@@ -787,54 +849,54 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                   <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
                 </div>
               ) : myClasses.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl shadow-xl p-8 text-center">
                   <div className="text-gray-400 mb-4">
                     <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No courses yet</h3>
-                  <p className="text-gray-600">Start learning by enrolling in your first course!</p>
+                  <h3 className="text-lg font-medium text-gray-200 mb-2">No courses yet</h3>
+                  <p className="text-gray-400">Start learning by enrolling in your first course!</p>
                 </div>
               ) : (
                 getFilteredClasses().map((classItem) => (
-                  <div key={classItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                  <div key={classItem._id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl shadow-xl p-6">
                     {editingClass === classItem._id ? (
                       // Edit Mode
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Class Title</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">Class Title</label>
                           <input
                             type="text"
                             value={classFormData.title}
                             onChange={(e) => handleClassInputChange('title', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                             placeholder="Enter class title"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
                           <textarea
                             value={classFormData.description}
                             onChange={(e) => handleClassInputChange('description', e.target.value)}
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                             placeholder="Enter class description"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
                           <input
                             type="date"
                             value={classFormData.date}
                             onChange={(e) => handleClassInputChange('date', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                           />
                         </div>
                         <div className="flex gap-2 pt-2">
                           <button
                             onClick={() => saveClass(classItem._id)}
-                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition"
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
                           >
                             Save Changes
                           </button>
@@ -851,17 +913,100 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                       <div>
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 text-lg mb-2">{classItem.title}</h3>
-                            <p className="text-gray-600 text-sm mb-3">{classItem.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-gray-200 text-lg">{classItem.title}</h3>
+                              {/* Status Badge */}
+                              {classItem.status && (
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium
+                                  ${classItem.status === 'live' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
+                                    classItem.status === 'completed' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
+                                    'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                                  {classItem.status === 'live' ? '🔴 LIVE' : 
+                                   classItem.status === 'completed' ? 'Completed' : 
+                                   'Scheduled'}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-400 text-sm mb-3">{classItem.description}</p>
+                            
+                            {/* Date and Time Info */}
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
                               <span className="flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                                 </svg>
-                                {new Date(classItem.date).toLocaleDateString()}
+                                {new Date(classItem.startTime || classItem.date).toLocaleDateString()}
                               </span>
+                              {classItem.startTime && (
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                  {new Date(classItem.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                              {classItem.duration && (
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  {classItem.duration} minutes
+                                </span>
+                              )}
                             </div>
+
+                            {/* Countdown Timer - Only show for scheduled classes with startTime */}
+                            {classItem.startTime && classItem.status === 'scheduled' && (
+                              <div className="mb-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                                <CompactCountdownTimer 
+                                  startTime={classItem.startTime} 
+                                  onCanStart={(canStart) => handleCanStartChange(classItem._id, canStart)}
+                                  className="justify-start"
+                                />
+                              </div>
+                            )}
+
+                            {/* Start Button - Only for scheduled classes */}
+                            {classItem.status === 'scheduled' && classItem.startTime && classStartStates[classItem._id] && (
+                              <div className="mb-3">
+                                <button
+                                  onClick={() => handleStartClass(classItem)}
+                                  disabled={startingClass === classItem._id}
+                                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 
+                                           disabled:from-green-800 disabled:to-emerald-800 disabled:cursor-not-allowed
+                                           text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 
+                                           hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
+                                >
+                                  {startingClass === classItem._id ? (
+                                    <>
+                                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                      </svg>
+                                      Starting Class...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8"/>
+                                      </svg>
+                                      Start Live Class
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Live Class Status */}
+                            {classItem.status === 'live' && (
+                              <div className="mb-3 p-3 bg-red-500/10 rounded-lg border border-red-500/30">
+                                <div className="flex items-center gap-2 text-red-400">
+                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                  <span className="text-sm font-medium">Class is currently live!</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
+                          
                           <div className="flex gap-2">
                             <button 
                               onClick={() => deleteClass(classItem._id)}

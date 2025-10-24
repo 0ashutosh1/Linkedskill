@@ -30,4 +30,10 @@ router.delete('/:id/attend', authenticate, classController.removeAttendee);
 // Mark attendance (protected route)
 router.post('/:id/attendance', authenticate, classController.markAttendance);
 
+// Start a class (protected route - only for class owner)
+router.post('/:id/start', authenticate, classController.startClass);
+
+// End a class (protected route - only for class owner)
+router.post('/:id/end', authenticate, classController.endClass);
+
 module.exports = router;

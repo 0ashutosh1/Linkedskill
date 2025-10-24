@@ -444,6 +444,49 @@ exports.getConnectionStatus = async (req, res) => {
   }
 }
 
+// Batch check connection status for multiple experts
+exports.getConnectionStatusBatch = async (req, res) => {
+  try {
+    const { expertIds } = req.body
+    const followerId = req.user.sub
+
+    if (!expertIds || !Array.isArray(expertIds) || expertIds.length === 0) {
+      return res.status(400).json({ error: 'expertIds array is required' })
+    }
+
+    // Limit batch size to prevent abuse
+    if (expertIds.length > 100) {
+      return res.status(400).json({ error: 'Too many expertIds. Maximum 100 allowed per batch.' })
+    }
+
+    // Get all connections for the user with the specified experts
+    const connections = await Connection.find({
+      expertId: { $in: expertIds },
+      followerId,
+      isActive: true
+    }).select('expertId status')
+
+    // Build status object
+    const statuses = {}
+    expertIds.forEach(expertId => {
+      const connection = connections.find(c => c.expertId.toString() === expertId)
+      statuses[expertId] = {
+        isConnected: connection?.status === 'accepted' || false,
+        connectionExists: !!connection,
+        status: connection?.status || null
+      }
+    })
+
+    res.status(200).json({
+      statuses
+    })
+
+  } catch (error) {
+    console.error('Error checking batch connection status:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
 // Get expert statistics
 exports.getExpertStats = async (req, res) => {
   try {

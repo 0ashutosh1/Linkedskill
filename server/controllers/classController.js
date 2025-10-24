@@ -6,25 +6,29 @@ const Notification = require('../models/Notification');
 // Create a new class
 exports.createClass = async (req, res) => {
   try {
-    const { title, description, date, image, categoryId, subCategoryId } = req.body;
-    console.log('Create class request:', { title, description, date, categoryId, subCategoryId, userId: req.user.sub });
+    const { title, description, date, startTime, duration, image, categoryId, subCategoryId, liveUrl } = req.body;
+    console.log('Create class request:', { title, description, date, startTime, duration, categoryId, subCategoryId, userId: req.user.sub });
     
-    if (!title || !description || !date) {
+    if (!title || !description || !date || !startTime) {
       console.log('Missing required fields');
-      return res.status(400).json({ error: 'Title, description, and date are required' });
+      return res.status(400).json({ error: 'Title, description, date, and start time are required' });
     }
 
     const newClass = new Class({
       title,
       description,
       date,
+      startTime,
+      duration: duration || 60,
       userId: req.user.sub, // From authenticated user
       image: image || '',
       categoryId,
       subCategoryId,
       interestedCount: 0,
       totalAttended: 0,
-      attendees: []
+      attendees: [],
+      status: 'scheduled',
+      liveUrl: liveUrl || ''
     });
 
     await newClass.save();
@@ -278,6 +282,113 @@ exports.markAttendance = async (req, res) => {
     });
   } catch (err) {
     console.error('Error marking attendance:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Start a class (only for class owner)
+exports.startClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.sub;
+    const { liveUrl } = req.body;
+    
+    const classData = await Class.findById(id);
+    
+    if (!classData) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    // Check if user is the owner of the class
+    if (classData.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'Only the class instructor can start the class' });
+    }
+    
+    // Check if class is scheduled
+    if (classData.status !== 'scheduled') {
+      return res.status(400).json({ error: 'Class cannot be started. Current status: ' + classData.status });
+    }
+    
+    // Check if current time is within 10 minutes before start time
+    const now = new Date();
+    const startTime = new Date(classData.startTime);
+    const tenMinutesBefore = new Date(startTime.getTime() - 10 * 60 * 1000);
+    
+    if (now < tenMinutesBefore) {
+      const timeUntilStart = Math.ceil((tenMinutesBefore - now) / (1000 * 60));
+      return res.status(400).json({ 
+        error: `Class can only be started ${timeUntilStart} minutes before the scheduled time` 
+      });
+    }
+    
+    // Update class status to live
+    classData.status = 'live';
+    if (liveUrl) {
+      classData.liveUrl = liveUrl;
+    }
+    
+    await classData.save();
+    
+    // Send notifications to all attendees
+    try {
+      const notifications = classData.attendees.map(attendeeId => ({
+        type: 'class_started',
+        message: `🔴 LIVE NOW: "${classData.title}" has started! Join now.`,
+        senderId: userId,
+        receiverId: attendeeId,
+        priority: 'high'
+      }));
+      
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    } catch (notificationError) {
+      console.error('Error sending start notifications:', notificationError);
+    }
+    
+    res.json({ 
+      message: 'Class started successfully', 
+      class: classData 
+    });
+  } catch (err) {
+    console.error('Error starting class:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// End a class (only for class owner)
+exports.endClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.sub;
+    
+    const classData = await Class.findById(id);
+    
+    if (!classData) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    // Check if user is the owner of the class
+    if (classData.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'Only the class instructor can end the class' });
+    }
+    
+    // Check if class is live
+    if (classData.status !== 'live') {
+      return res.status(400).json({ error: 'Class is not currently live' });
+    }
+    
+    // Update class status to completed
+    classData.status = 'completed';
+    
+    await classData.save();
+    
+    res.json({ 
+      message: 'Class ended successfully', 
+      class: classData 
+    });
+  } catch (err) {
+    console.error('Error ending class:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

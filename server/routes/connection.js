@@ -3,11 +3,6 @@ const router = express.Router()
 const { authenticate: auth } = require('../middleware/auth')
 const connectionController = require('../controllers/connectionController')
 
-// Test route
-router.get('/test', (req, res) => {
-  res.json({ message: 'Connection routes working' })
-})
-
 // Follow/Unfollow expert routes
 router.post('/follow/:expertId', auth, connectionController.followExpert)
 router.delete('/unfollow/:expertId', auth, connectionController.unfollowExpert)
@@ -23,6 +18,7 @@ router.get('/my-followers', auth, connectionController.getExpertFollowers)
 
 // Connection status and management
 router.get('/status/:expertId', auth, connectionController.getConnectionStatus)
+router.post('/status/batch', auth, connectionController.getConnectionStatusBatch)
 router.put('/:connectionId', auth, connectionController.updateConnection)
 
 // Expert statistics

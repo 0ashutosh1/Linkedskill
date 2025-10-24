@@ -18,25 +18,8 @@ export default function ExpertsPage({ onBack }) {
   // Function to refresh connection statuses (can be called when user returns from notifications)
   const refreshConnectionStatuses = async () => {
     if (experts.length > 0) {
-      const statuses = {}
-      for (const expert of experts) {
-        try {
-          const statusData = await getConnectionStatus(expert.userId._id)
-          statuses[expert.userId._id] = {
-            isConnected: statusData.isConnected,
-            status: statusData.status,
-            connectionExists: statusData.connectionExists
-          }
-        } catch (err) {
-          console.error(`Error checking status for expert ${expert.userId._id}:`, err)
-          statuses[expert.userId._id] = {
-            isConnected: false,
-            status: null,
-            connectionExists: false
-          }
-        }
-      }
-      setConnectionStatuses(statuses)
+      const expertIds = experts.map(expert => expert.userId._id)
+      await fetchConnectionStatusesBatch(expertIds)
     }
   }
 
@@ -60,27 +43,11 @@ export default function ExpertsPage({ onBack }) {
         const expertProfiles = data.profiles || []
         setExperts(expertProfiles)
         
-        // Check connection status for each expert
-        const statuses = {}
-        for (const expert of expertProfiles) {
-          try {
-            // Use userId._id (User ID) instead of _id (Profile ID)
-            const statusData = await getConnectionStatus(expert.userId._id)
-            statuses[expert.userId._id] = {
-              isConnected: statusData.isConnected,
-              status: statusData.status,
-              connectionExists: statusData.connectionExists
-            }
-          } catch (err) {
-            console.error(`Error checking status for expert ${expert.userId._id}:`, err)
-            statuses[expert.userId._id] = {
-              isConnected: false,
-              status: null,
-              connectionExists: false
-            }
-          }
+        // Batch connection status check for all experts at once
+        if (expertProfiles.length > 0) {
+          const expertIds = expertProfiles.map(expert => expert.userId._id)
+          await fetchConnectionStatusesBatch(expertIds)
         }
-        setConnectionStatuses(statuses)
       } else {
         setError('Failed to fetch expert profiles')
       }
@@ -89,6 +56,52 @@ export default function ExpertsPage({ onBack }) {
       setError('Error loading expert profiles')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Batch fetch connection statuses to reduce API calls
+  const fetchConnectionStatusesBatch = async (expertIds) => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) return
+
+      // Make a single API call to get all connection statuses
+      const response = await fetch(`${API_URL}/connections/status/batch`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ expertIds })
+      })
+
+      if (response.ok) {
+        const statusData = await response.json()
+        setConnectionStatuses(statusData.statuses || {})
+      } else {
+        // Fallback to individual calls if batch endpoint not available
+        const statuses = {}
+        for (const expertId of expertIds) {
+          try {
+            const statusData = await getConnectionStatus(expertId)
+            statuses[expertId] = {
+              isConnected: statusData.isConnected,
+              status: statusData.status,
+              connectionExists: statusData.connectionExists
+            }
+          } catch (err) {
+            console.error(`Error checking status for expert ${expertId}:`, err)
+            statuses[expertId] = {
+              isConnected: false,
+              status: null,
+              connectionExists: false
+            }
+          }
+        }
+        setConnectionStatuses(statuses)
+      }
+    } catch (err) {
+      console.error('Error fetching connection statuses:', err)
     }
   }
 
@@ -125,6 +138,13 @@ export default function ExpertsPage({ onBack }) {
 
   const handleFollowToggle = async (expertId) => {
     console.log('handleFollowToggle called with expertId:', expertId)
+    
+    // Prevent duplicate calls - check if already processing this expert
+    if (connectingExperts.has(expertId)) {
+      console.log('Already processing connection for expert:', expertId)
+      return
+    }
+    
     setConnectingExperts(prev => new Set([...prev, expertId]))
     
     try {
@@ -157,6 +177,11 @@ export default function ExpertsPage({ onBack }) {
       console.error('Error toggling connection:', error)
       console.error('Error details:', error.message, error.stack)
       setError(error.message)
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setError('')
+      }, 5000)
     } finally {
       setConnectingExperts(prev => {
         const newSet = new Set(prev)

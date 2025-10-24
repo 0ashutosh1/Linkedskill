@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import ProfilePage from './components/ProfilePage'
 import ReferencePage from './components/ReferencePage'
 import ExpertsPage from './components/ExpertsPage'
@@ -12,13 +12,18 @@ import RightPanel from './components/RightPanel'
 import CourseCard from './components/CourseCard'
 import CategorySection from './components/CategorySection'
 import ClassSection from './components/ClassSection'
-import ChatModal from './components/ChatModal'
+import CarouselSection from './components/CarouselSection'
+import ChatModal from './components/ChatModal'  // RESTORED WITH NO-OP SOCKET
 import { isAuthenticated as checkAuth, logout as doLogout } from './utils/auth'
 import { getMyConnections } from './utils/connections'
+import { classAPI } from './utils/classAPI'
 import logo from './assets/LinkedSkill.jpg'
 
 export default function App() {
+  // Debug logging
+  console.log('App component rendering...');
 
+  const [appLoading, setAppLoading] = useState(true)
   const [route, setRoute] = useState('home')
   const [selectedProfile, setSelectedProfile] = useState(null)
   const [currentCourse, setCurrentCourse] = useState(null)
@@ -38,19 +43,12 @@ export default function App() {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false)
   const [chatMessages, setChatMessages] = useState({}) // Messages grouped by expert ID
 
-  // Check if user is already authenticated on mount
-  useEffect(() => {
-    const authenticated = checkAuth()
-    setIsAuthenticated(authenticated)
-    
-    // Fetch connected experts if authenticated
-    if (authenticated) {
-      fetchConnectedExperts()
-    }
-  }, [])
+  // Upcoming Classes state (for right panel)
+  const [upcomingClasses, setUpcomingClasses] = useState([])
+  const [classesLoading, setClassesLoading] = useState(false)
 
   // Fetch connected experts
-  const fetchConnectedExperts = async () => {
+  const fetchConnectedExperts = useCallback(async () => {
     setConnectionsLoading(true)
     try {
       const connections = await getMyConnections()
@@ -61,7 +59,55 @@ export default function App() {
     } finally {
       setConnectionsLoading(false)
     }
-  }
+  }, [])
+
+  // Fetch upcoming classes for right panel
+  const fetchUpcomingClasses = useCallback(async () => {
+    setClassesLoading(true)
+    try {
+      const response = await fetch('http://localhost:4000/classes', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        // Filter for upcoming scheduled and live classes
+        const upcoming = data.classes?.filter(cls => 
+          cls.status === 'scheduled' || cls.status === 'live'
+        ).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)) || []
+        
+        setUpcomingClasses(upcoming)
+      }
+    } catch (error) {
+      console.error('Error fetching upcoming classes:', error)
+      setUpcomingClasses([])
+    } finally {
+      setClassesLoading(false)
+    }
+  }, [])
+
+  // Check if user is already authenticated on mount
+  useEffect(() => {
+    try {
+      const authenticated = checkAuth()
+      console.log('Authentication check:', authenticated);
+      setIsAuthenticated(authenticated)
+      
+      // Fetch connected experts and classes if authenticated
+      if (authenticated) {
+        fetchConnectedExperts()
+        fetchUpcomingClasses()
+      }
+      
+      // App is ready to render
+      setAppLoading(false)
+    } catch (error) {
+      console.error('Error in authentication useEffect:', error)
+      setAppLoading(false) // Still set loading to false to prevent infinite loading
+    }
+  }, []) // Remove fetchConnectedExperts from dependencies to prevent infinite loop
 
 
 
@@ -70,6 +116,7 @@ export default function App() {
     setIsAuthenticated(true)
     setRoute('home')
     fetchConnectedExperts() // Fetch connections after login
+    fetchUpcomingClasses() // Fetch classes after login
   }
 
   function handleSignup(data) {
@@ -77,6 +124,7 @@ export default function App() {
     setIsAuthenticated(true)
     setRoute('home')
     fetchConnectedExperts() // Fetch connections after signup
+    fetchUpcomingClasses() // Fetch classes after signup
   }
 
   function handleLogout() {
@@ -124,7 +172,7 @@ export default function App() {
   }
 
   // Fetch classes by category
-  async function handleCategoryClick(category) {
+  const handleCategoryClick = useCallback(async (category) => {
     console.log('Selected category:', category.name);
     setSelectedCategory(category);
     setLoadingClasses(true);
@@ -137,9 +185,12 @@ export default function App() {
       const transformedClasses = (data.classes || []).map(cls => ({
         title: cls.title,
         tag: category.name,
-        author: 'Expert Instructor',
-        date: new Date(cls.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        time: '2h 30m',
+        author: cls.userId?.name || 'Expert Instructor',
+        date: new Date(cls.startTime || cls.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: cls.duration ? `${cls.duration}min` : '2h 30m',
+        startTime: cls.startTime,
+        status: cls.status || 'scheduled',
+        classId: cls._id, // This is crucial for join functionality
         description: cls.description,
         learners: cls.interestedCount?.toString() || '0',
         level: 'Intermediate'
@@ -152,19 +203,164 @@ export default function App() {
     } finally {
       setLoadingClasses(false);
     }
+  }, [])
+
+  // Clear category selection
+  const handleClearCategory = useCallback(() => {
+    setSelectedCategory(null);
+    setCategoryClasses([]);
+  }, [])
+
+  // Handle starting a class (for instructors)
+  const handleStartClass = useCallback(async ({ classId, title, startTime }) => {
+    try {
+      console.log('Starting class:', { classId, title, startTime })
+      const result = await classAPI.startClass(classId)
+      
+      // Show success notification
+      alert(`Class "${title}" has been started successfully! Students will be notified.`)
+      
+      // You could also redirect to a live class interface here
+      // setRoute('live-class')
+      
+      return result
+    } catch (error) {
+      console.error('Error starting class:', error)
+      alert(`Failed to start class: ${error.message}`)
+      throw error
+    }
+  }, [])
+
+  // Handle joining a class (for students)
+  const handleJoinClass = useCallback(async (classData) => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        alert('Please login to register for classes')
+        return
+      }
+
+      const { status, classId, title } = classData
+      console.log('App: Attempting to join class:', classData)
+      
+      if (status === 'live') {
+        // Join live class immediately
+        console.log('Joining live class:', title)
+        alert(`Joining live class: "${title}"`)
+        // window.open(liveUrl, '_blank') // If you have a live URL
+      } else if (status === 'scheduled' && classId) {
+        // Check if user is already registered for this class
+        const checkResponse = await fetch('http://localhost:4000/classes', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (checkResponse.ok) {
+          const data = await checkResponse.json()
+          const targetClass = data.classes?.find(cls => cls._id === classId)
+          
+          if (!targetClass) {
+            alert('Class not found')
+            return
+          }
+
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+          const isRegistered = targetClass.attendees?.some(
+            attendee => attendee._id === currentUser.sub || attendee === currentUser.sub
+          )
+
+          // Determine the action and endpoint
+          const action = isRegistered ? 'leave' : 'join'
+          const method = isRegistered ? 'DELETE' : 'POST'
+          
+          const response = await fetch(`http://localhost:4000/classes/${classId}/attend`, {
+            method,
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (response.ok) {
+            const actionText = isRegistered ? 'left' : 'joined'
+            alert(`Successfully ${actionText} the class "${title}"!`)
+            
+            // Refresh the classes
+            if (selectedCategory) {
+              handleCategoryClick(selectedCategory)
+            }
+            fetchUpcomingClasses()
+          } else {
+            const errorData = await response.json()
+            alert(errorData.error || `Failed to ${action} class`)
+          }
+        }
+      } else {
+        // Fallback for classes without classId
+        alert('Class registration not available for this class')
+      }
+    } catch (error) {
+      console.error('Error joining class:', error)
+      alert(`Failed to join class: ${error.message}`)
+    }
+  }, [selectedCategory, handleCategoryClick, fetchUpcomingClasses])
+
+  // Show loading screen while app initializes
+  if (appLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh', 
+        background: '#f5f5f5',
+        flexDirection: 'column',
+        gap: '20px'
+      }}>
+        <div style={{ fontSize: '18px', color: '#333' }}>Loading LinkedSkill...</div>
+        <div style={{ 
+          width: '40px', 
+          height: '40px', 
+          border: '4px solid #e0e0e0', 
+          borderTop: '4px solid #1976d2', 
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
   // Show login/signup pages if not authenticated
   if (!isAuthenticated) {
+    console.log('User not authenticated, showing auth page:', authPage);
     if (authPage === 'login') {
       return <LoginPage onLogin={handleLogin} onSwitchToSignup={() => setAuthPage('signup')} />
     }
     return <SignupPage onSignup={handleSignup} onSwitchToLogin={() => setAuthPage('login')} />
   }
 
+  console.log('User authenticated, rendering main app with route:', route);
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      <AddClassModal isOpen={isAddClassModalOpen} onClose={() => setIsAddClassModalOpen(false)} />
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-800 via-slate-900 to-gray-900 text-white">
+      <AddClassModal 
+        isOpen={isAddClassModalOpen} 
+        onClose={() => setIsAddClassModalOpen(false)}
+        onClassCreated={() => {
+          fetchUpcomingClasses()
+          // Also refresh category classes if a category is selected
+          if (selectedCategory) {
+            fetchClassesByCategory(selectedCategory)
+          }
+        }}
+      />
       <ChatModal 
         isOpen={isChatModalOpen} 
         onClose={handleCloseChatModal}
@@ -173,7 +369,7 @@ export default function App() {
       />
       
       {/* Mobile Header - Enhanced responsive design */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-40 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-800/95 backdrop-blur-sm shadow-lg z-40 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center gap-2 sm:gap-3">
           <img 
             src={logo} 
@@ -181,7 +377,7 @@ export default function App() {
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover cursor-pointer" 
             onClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
           />
-          <div className="text-base sm:text-lg font-semibold text-purple-600">LinkedSkill</div>
+          <div className="text-base sm:text-lg font-semibold text-blue-600">LinkedSkill</div>
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -198,19 +394,19 @@ export default function App() {
         </button>
       </div>
 
-      {/* Main Layout Container - Improved responsive grid */}
-      <div className="min-h-screen lg:min-h-0 lg:bg-white lg:rounded-2xl lg:shadow-lg lg:m-4 xl:m-6 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen lg:min-h-0">
-          {/* Sidebar - Enhanced mobile drawer */}
+      {/* Main Layout Container - Full width layout */}
+      <div className="h-screen bg-slate-800/50 backdrop-blur-sm overflow-hidden flex flex-col">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0">
+          {/* Sidebar - Fixed position, no scroll except mobile */}
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:col-span-2 
-            bg-white border-r lg:border-r-gray-200
+            bg-slate-800/70 backdrop-blur-sm border-r lg:border-r-gray-700
             transform transition-transform duration-300 ease-in-out lg:transform-none
             ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            pt-14 sm:pt-16 lg:pt-0 overflow-y-auto
+            pt-14 sm:pt-16 lg:pt-0 lg:h-full flex flex-col
             shadow-2xl lg:shadow-none
           `}>
-            <div className="h-full px-3 sm:px-4 lg:px-0 pb-6">
+            <div className="flex-1 px-3 sm:px-4 lg:px-0 py-6 overflow-y-auto lg:overflow-y-auto">
               <Sidebar 
                 onLogoClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
                 onFriendClick={(p) => { setSelectedProfile(p); setRoute('profile'); setIsMobileMenuOpen(false); }} 
@@ -229,15 +425,15 @@ export default function App() {
             />
           )}
 
-          {/* Main Content Area - Better responsive spacing with visible overflow for popups */}
+          {/* Main Content Area - Scrollable center content */}
           <main className={`
             ${route === 'home' ? 'lg:col-span-8' : 'lg:col-span-10'} 
             pt-14 sm:pt-16 lg:pt-0 
             px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 
             py-4 sm:py-6 lg:py-8 xl:py-10
-            overflow-visible
-            min-h-screen lg:min-h-0
-          `} style={{ overflow: 'visible' }}>
+            lg:overflow-y-auto lg:overflow-x-visible
+            min-h-screen lg:min-h-0 lg:h-full
+          `}>
             {/* Enhanced responsive header */}
             {route !== 'experts' && (
               <header className="mb-4 sm:mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
@@ -251,9 +447,9 @@ export default function App() {
                   <div className="relative w-full sm:max-w-md lg:max-w-lg">
                     <input 
                       placeholder="Search your course here..." 
-                      className="w-full border border-gray-200 rounded-full pl-4 pr-10 py-2 sm:py-2.5 text-sm sm:text-base 
-                                focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent
-                                bg-white shadow-sm hover:shadow-md transition-shadow" 
+                      className="w-full border border-slate-600/50 rounded-full pl-4 pr-10 py-2 sm:py-2.5 text-sm sm:text-base 
+                                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                                bg-slate-700/50 text-gray-200 placeholder-gray-400 shadow-lg hover:shadow-xl transition-shadow" 
                     />
                     <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                       <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,7 +465,7 @@ export default function App() {
               <>
                 {/* Enhanced responsive hero section */}
                 <section className="mb-4 sm:mb-6 lg:mb-8">
-                  <div className="bg-gradient-to-r from-purple-400 via-purple-500 to-pink-400 text-white rounded-xl sm:rounded-2xl 
+                  <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 text-white rounded-xl sm:rounded-2xl 
                                   p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6 lg:gap-8
                                   shadow-lg hover:shadow-xl transition-shadow duration-300">
                     <div className="flex-1 text-center lg:text-left">
@@ -277,45 +473,92 @@ export default function App() {
                       <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight mb-3 sm:mb-4">
                         Sharpen Your Skills With Professional Online Courses
                       </h2>
-                      <button className="bg-white text-purple-600 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-semibold 
-                                       text-sm sm:text-base hover:bg-gray-50 transform hover:scale-105 transition-all duration-200
-                                       shadow-md hover:shadow-lg">
+                      <button className="bg-slate-800 border border-slate-600/50 text-blue-400 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-semibold 
+                                       text-sm sm:text-base hover:bg-slate-700 transform hover:scale-105 transition-all duration-200
+                                       shadow-lg hover:shadow-xl">
                         Join Now
                       </button>
                     </div>
-                    <div className="w-full max-w-[200px] h-20 sm:h-24 lg:w-48 lg:h-28 bg-white/20 rounded-lg sm:rounded-xl flex-shrink-0
-                                    backdrop-blur-sm border border-white/30" />
+                    <div className="w-full max-w-[200px] h-20 sm:h-24 lg:w-48 lg:h-28 bg-slate-800/30 rounded-lg sm:rounded-xl flex-shrink-0
+                                    backdrop-blur-sm border border-slate-600/50" />
                   </div>
                 </section>
 
-          <CategorySection onCategoryClick={handleCategoryClick} />
+          <CategorySection onCategoryClick={handleCategoryClick} selectedCategory={selectedCategory} onClearCategory={handleClearCategory} />
 
           {/* Show filtered classes if a category is selected */}
           {selectedCategory && (
             <>
               {loadingClasses ? (
                 <section className="mb-6 md:mb-8">
-                  <h3 className="text-base md:text-xl font-semibold text-gray-800 mb-4">
-                    {selectedCategory.name} Classes
-                  </h3>
+                  <div className="flex items-center gap-3 mb-4">
+                    <button 
+                      onClick={handleClearCategory}
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 
+                                 font-medium text-sm hover:bg-purple-50 px-3 py-1.5 rounded-lg 
+                                 transition-all duration-300"
+                      title="Back to all categories"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+                      </svg>
+                      Back
+                    </button>
+                    <h3 className="text-base md:text-xl font-semibold text-gray-800">
+                      {selectedCategory.name} Classes
+                    </h3>
+                  </div>
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
                   </div>
                 </section>
               ) : categoryClasses.length > 0 ? (
-                <ClassSection 
-                  title={`${selectedCategory.name} Classes (${categoryClasses.length})`}
-                  classes={categoryClasses}
-                  onSeeAll={() => console.log('See all')}
-                  onJoin={(cls) => console.log('Join:', cls)}
-                  onSelect={(cls) => console.log('Select:', cls)}
-                />
+                <section className="mb-6 md:mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <button 
+                      onClick={handleClearCategory}
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 
+                                 font-medium text-sm hover:bg-purple-50 px-3 py-1.5 rounded-lg 
+                                 transition-all duration-300"
+                      title="Back to all categories"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+                      </svg>
+                      Back
+                    </button>
+                    <h3 className="text-base md:text-xl font-semibold text-gray-800">
+                      {selectedCategory.name} Classes ({categoryClasses.length})
+                    </h3>
+                  </div>
+                  <CarouselSection 
+                    title=""
+                    classes={categoryClasses}
+                    onSeeAll={() => console.log('See all')}
+                    onJoin={handleJoinClass}
+                    onSelect={(cls) => console.log('Select:', cls)}
+                  />
+                </section>
               ) : (
                 <section className="mb-6 md:mb-8">
-                  <h3 className="text-base md:text-xl font-semibold text-gray-800 mb-4">
-                    {selectedCategory.name} Classes
-                  </h3>
-                  <div className="bg-white rounded-xl p-6 text-center text-gray-500">
+                  <div className="flex items-center gap-3 mb-4">
+                    <button 
+                      onClick={handleClearCategory}
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 
+                                 font-medium text-sm hover:bg-purple-50 px-3 py-1.5 rounded-lg 
+                                 transition-all duration-300"
+                      title="Back to all categories"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+                      </svg>
+                      Back
+                    </button>
+                    <h3 className="text-base md:text-xl font-semibold text-gray-800">
+                      {selectedCategory.name} Classes
+                    </h3>
+                  </div>
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 text-center text-gray-400">
                     No classes available in this category yet.
                   </div>
                 </section>
@@ -324,7 +567,7 @@ export default function App() {
           )}
 
           {/* Upcoming Classes */}
-          <ClassSection 
+          <CarouselSection 
             title="My Upcoming Classes"
             classes={[
               {
@@ -333,6 +576,9 @@ export default function App() {
                 author: "Alex Morgan",
                 date: "Oct 5, 2025",
                 time: "2h 30m",
+                startTime: "2025-10-25T14:30:00Z", // Tomorrow at 2:30 PM UTC
+                status: "scheduled",
+                classId: "demo-class-1",
                 description: "Master modern frontend development with React, HTML5, CSS3, and JavaScript. Build responsive, interactive web applications from scratch.",
                 learners: "8,245",
                 level: "Beginner"
@@ -360,12 +606,14 @@ export default function App() {
             ]}
             onSeeAll={() => console.log('See all Upcoming classes')}
             onSelect={(c) => setCurrentCourse(c)}
-            onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
+            onJoin={handleJoinClass}
+            onStart={handleStartClass}
           />
 
           {/* Tech Classes */}
-          <ClassSection 
-            title="Tech Classes"
+          <div className="mt-8 mb-8">
+            <CarouselSection 
+              title="Tech Classes"
             classes={[
               {
                 title: "Advanced React Patterns & Best Practices",
@@ -402,9 +650,10 @@ export default function App() {
             onSelect={(c) => setCurrentCourse(c)}
             onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
           />
+          </div>
 
           {/* Finance Classes */}
-          <ClassSection 
+          <CarouselSection 
             title="Finance Classes"
             classes={[
               {
@@ -444,7 +693,7 @@ export default function App() {
           />
 
           {/* Sports & Fitness Classes */}
-          <ClassSection 
+          <CarouselSection 
             title="Sports & Fitness Classes"
             classes={[
               {
@@ -484,7 +733,7 @@ export default function App() {
           />
 
           {/* Music Classes */}
-          <ClassSection 
+          <CarouselSection 
             title="Music Classes"
             classes={[
               {
@@ -535,22 +784,27 @@ export default function App() {
             ) : null }
           </main>
 
-          {/* Enhanced responsive right panel */}
+          {/* Fixed responsive right panel */}
           {route === 'home' && (
-            <aside className="lg:col-span-2 border-t lg:border-t-0 lg:border-l lg:border-gray-200 bg-white
-                             px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8
-                             order-first lg:order-last">
-              <RightPanel 
-                onProfileClick={() => { setSelectedProfile({ id: 'me', name: 'Alex Morgan', role: 'Software Developer' }); setRoute('profile'); }} 
-                onReferencesClick={() => setRoute('references')}
-                onNotificationsClick={() => setRoute('notifications')}
-                connectedExperts={connectedExperts}
-                onExpertChatClick={handleExpertChatClick}
-                onExpertProfileClick={handleExpertProfileClick}
-                onStudentChatClick={handleStudentChatClick}
-                onStudentProfileClick={handleStudentProfileClick}
-                connectionsLoading={connectionsLoading}
-              />
+            <aside className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-700/50 bg-slate-800/30
+                             px-3 sm:px-4 lg:px-4 py-3 sm:py-4 lg:py-4
+                             order-first lg:order-last
+                             lg:h-full lg:flex lg:flex-col">
+              <div className="lg:flex-1 lg:h-full overflow-visible">
+                <RightPanel 
+                  onProfileClick={() => { setSelectedProfile({ id: 'me', name: 'Alex Morgan', role: 'Software Developer' }); setRoute('profile'); }} 
+                  onReferencesClick={() => setRoute('references')}
+                  onNotificationsClick={() => setRoute('notifications')}
+                  connectedExperts={connectedExperts}
+                  onExpertChatClick={handleExpertChatClick}
+                  onExpertProfileClick={handleExpertProfileClick}
+                  onStudentChatClick={handleStudentChatClick}
+                  onStudentProfileClick={handleStudentProfileClick}
+                  connectionsLoading={connectionsLoading}
+                  upcomingClasses={upcomingClasses}
+                  onClassUpdate={fetchUpcomingClasses}
+                />
+              </div>
             </aside>
           )}
         </div>

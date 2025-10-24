@@ -99,10 +99,11 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-white rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
         {/* Left Side - Signup Form */}
-        <div className="p-6 md:p-12 flex flex-col justify-center order-1 md:order-1">
+        <div className="p-6 md:p-12 flex flex-col justify-center order-1 md:order-1
+                        bg-gradient-to-br from-white to-gray-50">
           <div className="mb-6 md:mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
             <p className="text-sm md:text-base text-gray-600">Join thousands of learners worldwide</p>
@@ -134,7 +135,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 placeholder="John Doe"
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300 placeholder:text-gray-400"
               />
             </div>
 
@@ -149,7 +150,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="you@example.com"
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300 placeholder:text-gray-400"
               />
             </div>
 
@@ -164,7 +165,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 value={formData.phoneNo}
                 onChange={(e) => setFormData({ ...formData, phoneNo: e.target.value })}
                 placeholder="1234567890"
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300 placeholder:text-gray-400"
               />
             </div>
 
@@ -178,7 +179,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 value={formData.roleId}
                 onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
                 disabled={rolesLoading}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
               >
                 <option value="">Select a role</option>
                 {roles.map((role) => (
@@ -203,7 +204,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
-                className={`w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 ${errors.password ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300`}
+                className={`w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-gray-900 bg-white border-2 ${errors.password ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300 placeholder:text-gray-400`}
               />
               {errors.password && (
                 <p className="text-red-500 text-xs mt-1">{errors.password}</p>
@@ -221,7 +222,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 placeholder="••••••••"
-                className={`w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300`}
+                className={`w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-gray-900 bg-white border-2 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300 placeholder:text-gray-400`}
               />
               {errors.confirmPassword && (
                 <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
@@ -311,7 +312,7 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
         </div>
 
         {/* Right Side - Branding */}
-        <div className="bg-gradient-to-br from-purple-600 to-pink-600 p-6 md:p-12 flex flex-col justify-center text-white relative overflow-hidden order-2 md:order-2">
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-slate-800 p-6 md:p-12 flex flex-col justify-center text-white relative overflow-hidden order-2 md:order-2">
           <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 -translate-x-32"></div>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full translate-y-32 translate-x-32"></div>
           

@@ -92,7 +92,7 @@ const getCategoryColor = (categoryName, index) => {
   return colors[index % colors.length];
 };
 
-export default function CategorySection({ onCategoryClick }) {
+export default function CategorySection({ onCategoryClick, selectedCategory, onClearCategory }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -133,14 +133,14 @@ export default function CategorySection({ onCategoryClick }) {
   if (loading) {
     return (
       <section className="mb-3 sm:mb-4 md:mb-6 lg:mb-8 
-                          bg-white rounded-lg sm:rounded-xl lg:rounded-2xl 
-                          p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm hover:shadow-md 
+                          bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg sm:rounded-xl lg:rounded-2xl 
+                          p-3 sm:p-4 md:p-5 lg:p-6 shadow-xl hover:shadow-2xl 
                           transition-shadow duration-300 mx-3 sm:mx-0">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-gray-800">
+          <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-gray-200">
             Explore Categories
           </h3>
-          <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-16 h-4 bg-slate-600/50 rounded animate-pulse"></div>
         </div>
         
         {/* Enhanced loading state */}
@@ -149,9 +149,9 @@ export default function CategorySection({ onCategoryClick }) {
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 min-w-fit">
               <div className="w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 
-                             rounded-full bg-gray-200 animate-pulse 
+                             rounded-full bg-slate-600/50 animate-pulse 
                              shadow-sm"></div>
-              <div className="w-12 xs:w-14 sm:w-16 h-2.5 sm:h-3 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-12 xs:w-14 sm:w-16 h-2.5 sm:h-3 bg-slate-600/50 rounded animate-pulse"></div>
             </div>
           ))}
         </div>
@@ -162,31 +162,31 @@ export default function CategorySection({ onCategoryClick }) {
   if (error) {
     return (
       <section className="mb-3 sm:mb-4 md:mb-6 lg:mb-8 
-                          bg-white rounded-lg sm:rounded-xl lg:rounded-2xl 
-                          p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm mx-3 sm:mx-0">
-        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold mb-3 text-gray-800">
+                          bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg sm:rounded-xl lg:rounded-2xl 
+                          p-3 sm:p-4 md:p-5 lg:p-6 shadow-xl mx-3 sm:mx-0">
+        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold mb-3 text-gray-200">
           Explore Categories
         </h3>
         
         {/* Enhanced error state */}
         <div className="flex items-center justify-center py-8 sm:py-12">
           <div className="text-center">
-            <div className="bg-red-100 rounded-full p-3 sm:p-4 mb-4 mx-auto w-fit">
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-red-900/30 border border-red-700/50 rounded-full p-3 sm:p-4 mb-4 mx-auto w-fit">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
                       d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <p className="text-sm sm:text-base text-red-600 font-medium mb-2">
+            <p className="text-sm sm:text-base text-red-400 font-medium mb-2">
               Error loading categories
             </p>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-400">
               {error}
             </p>
             <button 
               onClick={fetchCategories}
-              className="mt-3 px-4 py-2 bg-red-600 text-white text-sm rounded-lg 
-                         hover:bg-red-700 transition-colors duration-300">
+              className="mt-3 px-4 py-2 bg-red-600/80 text-white text-sm rounded-lg 
+                         hover:bg-red-600 transition-colors duration-300">
               Try Again
             </button>
           </div>
@@ -198,25 +198,25 @@ export default function CategorySection({ onCategoryClick }) {
   if (categories.length === 0) {
     return (
       <section className="mb-3 sm:mb-4 md:mb-6 lg:mb-8 
-                          bg-white rounded-lg sm:rounded-xl lg:rounded-2xl 
-                          p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm mx-3 sm:mx-0">
-        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold mb-3 text-gray-800">
+                          bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg sm:rounded-xl lg:rounded-2xl 
+                          p-3 sm:p-4 md:p-5 lg:p-6 shadow-xl mx-3 sm:mx-0">
+        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold mb-3 text-gray-200">
           Explore Categories
         </h3>
         
         {/* Enhanced empty state */}
         <div className="flex items-center justify-center py-8 sm:py-12">
           <div className="text-center">
-            <div className="bg-gray-100 rounded-full p-3 sm:p-4 mb-4 mx-auto w-fit">
+            <div className="bg-slate-700/50 border border-slate-600/50 rounded-full p-3 sm:p-4 mb-4 mx-auto w-fit">
               <svg className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
                       d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
               </svg>
             </div>
-            <p className="text-sm sm:text-base text-gray-600 font-medium">
+            <p className="text-sm sm:text-base text-gray-300 font-medium">
               No categories available
             </p>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">
               Categories will appear here once they are added
             </p>
           </div>
@@ -228,35 +228,63 @@ export default function CategorySection({ onCategoryClick }) {
 
   return (
     <section className="mb-3 sm:mb-4 md:mb-6 lg:mb-8 
-                        bg-white rounded-lg sm:rounded-xl lg:rounded-2xl 
-                        p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm hover:shadow-md 
+                        bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg sm:rounded-xl lg:rounded-2xl 
+                        p-3 sm:p-4 md:p-5 lg:p-6 shadow-xl hover:shadow-2xl 
                         transition-shadow duration-300 mx-3 sm:mx-0">
       
       {/* Enhanced responsive header */}
       <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-5">
-        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 
-                       font-semibold text-gray-800 flex-1">
-          Explore Categories
-        </h3>
+        <div className="flex items-center gap-3 flex-1">
+          <h3 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 
+                         font-semibold text-gray-200">
+            Explore Categories
+          </h3>
+          {selectedCategory && (
+            <span className="text-xs sm:text-sm px-2 py-1 bg-blue-900/30 border border-blue-700/50 text-blue-300 
+                           rounded-full font-medium">
+              {selectedCategory.name} selected
+            </span>
+          )}
+        </div>
         
-        {/* Show/Hide button for mobile */}
-        {categories.length > 6 && (
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="text-xs sm:text-sm font-semibold text-purple-600 
-                       hover:text-purple-700 active:text-purple-800
-                       px-2 sm:px-3 py-1 rounded-lg hover:bg-purple-50 
-                       transition-all duration-300 touch-manipulation
-                       flex items-center gap-1"
-          >
-            <span className="hidden xs:inline">
-              {showAll ? 'Show Less' : `+${categories.length - displayCategories.length} More`}
-            </span>
-            <span className="xs:hidden">
-              {showAll ? '−' : `+${categories.length - displayCategories.length}`}
-            </span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Clear selection button */}
+          {selectedCategory && onClearCategory && (
+            <button
+              onClick={onClearCategory}
+              className="text-xs sm:text-sm font-semibold text-red-400 
+                         hover:text-red-300 active:text-red-200
+                         px-2 sm:px-3 py-1 rounded-lg hover:bg-red-900/30 
+                         transition-all duration-300 touch-manipulation
+                         flex items-center gap-1"
+              title="Clear category selection"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              <span className="hidden xs:inline">Clear</span>
+            </button>
+          )}
+          
+          {/* Show/Hide button for mobile */}
+          {categories.length > 6 && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="text-xs sm:text-sm font-semibold text-blue-400 
+                         hover:text-blue-300 active:text-blue-200
+                         px-2 sm:px-3 py-1 rounded-lg hover:bg-blue-900/30 
+                         transition-all duration-300 touch-manipulation
+                         flex items-center gap-1"
+            >
+              <span className="hidden xs:inline">
+                {showAll ? 'Show Less' : `+${categories.length - displayCategories.length} More`}
+              </span>
+              <span className="xs:hidden">
+                {showAll ? '−' : `+${categories.length - displayCategories.length}`}
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Enhanced responsive category grid/scroll */}
@@ -271,16 +299,19 @@ export default function CategorySection({ onCategoryClick }) {
         {displayCategories.map((category, index) => {
           const icon = getCategoryIcon(category.name);
           const color = getCategoryColor(category.name, index);
+          const isSelected = selectedCategory && selectedCategory._id === category._id;
           
           return (
             <div
               key={category._id}
               onClick={() => onCategoryClick && onCategoryClick(category)}
               style={{ animationDelay: `${index * 50}ms` }}
-              className="flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer 
+              className={`flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer 
                          group min-w-fit touch-manipulation animate-fadeInUp
-                         hover:bg-purple-50/50 rounded-lg p-1 sm:p-2 
-                         transition-all duration-300"
+                         rounded-lg p-1 sm:p-2 transition-all duration-300
+                         ${isSelected 
+                           ? 'bg-purple-100 shadow-md ring-2 ring-purple-300' 
+                           : 'hover:bg-purple-50/50'}`}
             >
               {/* Enhanced responsive category icon */}
               <div className={`w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18
@@ -290,7 +321,8 @@ export default function CategorySection({ onCategoryClick }) {
                               transition-all duration-300 
                               group-hover:scale-110 group-hover:-translate-y-1
                               group-active:scale-95 
-                              ring-2 ring-transparent group-hover:ring-white/30`}>
+                              ring-2 ring-transparent group-hover:ring-white/30
+                              ${isSelected ? 'scale-110 -translate-y-1 ring-white/50' : ''}`}>
                 <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 
                                transition-transform duration-300 group-hover:scale-110">
                   {icon}
@@ -298,18 +330,20 @@ export default function CategorySection({ onCategoryClick }) {
               </div>
               
               {/* Enhanced responsive category name */}
-              <span className="text-xs sm:text-sm font-medium text-gray-700 
-                               group-hover:text-purple-600 group-active:text-purple-700
+              <span className={`text-xs sm:text-sm font-medium 
                                transition-colors duration-300 
                                whitespace-nowrap text-center leading-tight
                                max-w-[4rem] xs:max-w-[5rem] sm:max-w-[6rem] 
-                               truncate px-1">
+                               truncate px-1
+                               ${isSelected 
+                                 ? 'text-purple-700 font-semibold' 
+                                 : 'text-gray-700 group-hover:text-purple-600 group-active:text-purple-700'}`}>
                 {category.name}
               </span>
               
               {/* Hover effect indicator */}
-              <div className="w-0 h-0.5 bg-purple-600 rounded-full 
-                             group-hover:w-8 transition-all duration-300"></div>
+              <div className={`h-0.5 bg-purple-600 rounded-full transition-all duration-300
+                              ${isSelected ? 'w-8' : 'w-0 group-hover:w-8'}`}></div>
             </div>
           );
         })}

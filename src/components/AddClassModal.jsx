@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { classAPI } from '../utils/classAPI'
 
-export default function AddClassModal({ isOpen, onClose }) {
+export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     date: '',
     time: '',
+    duration: 60, // Default 60 minutes
     categoryId: '',
     subCategoryId: ''
   })
@@ -68,53 +70,48 @@ export default function AddClassModal({ isOpen, onClose }) {
         return
       }
 
-      // Combine date and time into a single DateTime
-      const dateTime = new Date(`${formData.date}T${formData.time}`)
+      // Combine date and time into a single DateTime for startTime
+      const startTime = new Date(`${formData.date}T${formData.time}`)
 
-      // Prepare the data for the backend
+      // Prepare the data for the backend (matching new API format)
       const classData = {
         title: formData.title,
         description: formData.description,
-        date: dateTime.toISOString(),
+        date: startTime.toISOString(), // Keep for backward compatibility
+        startTime: startTime.toISOString(), // New required field
+        duration: formData.duration, // Use form duration
         image: '', // You can add image upload later
         categoryId: formData.categoryId || undefined,
-        subCategoryId: formData.subCategoryId || undefined
+        subCategoryId: formData.subCategoryId || undefined,
+        liveUrl: '' // Optional live streaming URL
       }
 
       console.log('Sending class data:', classData)
 
-      // Send to backend API
-      const response = await fetch('http://localhost:4000/classes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(classData)
-      })
+      // Send to backend API using the classAPI utility
+      const result = await classAPI.createClass(classData)
 
-      const result = await response.json()
-
-      if (response.ok) {
-        alert('Class added successfully to MongoDB!')
-        console.log('Created class:', result)
-        onClose()
-        // Reset form
-        setFormData({
-          title: '',
-          description: '',
-          date: '',
-          time: '',
-          categoryId: '',
-          subCategoryId: ''
-        })
-        setSubcategories([])
-        // Optionally reload the page or update the class list
-        window.location.reload()
-      } else {
-        alert(`Failed to create class: ${result.error || 'Unknown error'}`)
-        console.error('Error:', result)
+      alert('Class created successfully! 🎉')
+      console.log('Created class:', result)
+      
+      // Call the onClassCreated callback to refresh data
+      if (onClassCreated) {
+        onClassCreated()
       }
+      
+      onClose()
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        date: '',
+        time: '',
+        duration: 60,
+        categoryId: '',
+        subCategoryId: ''
+      })
+      setSubcategories([])
     } catch (error) {
       console.error('Error creating class:', error)
       alert('Failed to create class. Please check console for details.')
@@ -123,33 +120,33 @@ export default function AddClassModal({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl md:rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl animate-scaleIn max-h-[90vh] overflow-y-auto"
+        className="bg-slate-800 border border-slate-700/50 rounded-2xl md:rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl animate-scaleIn max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 md:w-10 md:h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xl md:text-2xl transition-all duration-300 hover:rotate-90"
+          className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 md:w-10 md:h-10 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 rounded-full flex items-center justify-center text-gray-300 text-xl md:text-2xl transition-all duration-300 hover:rotate-90"
         >
           ×
         </button>
 
         <div className="mb-5 md:mb-6">
-          <div className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold mb-3 md:mb-4">
+          <div className="inline-block bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold mb-3 md:mb-4">
             New Class
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Add a New Class</h2>
-          <p className="text-sm md:text-base text-gray-600 mt-2">Fill in the details below to create a new class session</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-100">Add a New Class</h2>
+          <p className="text-sm md:text-base text-gray-300 mt-2">Fill in the details below to create a new class session</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
           {/* Title Field */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Class Title <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-200 mb-2">
+              Class Title <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -157,14 +154,14 @@ export default function AddClassModal({ isOpen, onClose }) {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Introduction to React Hooks"
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
             />
           </div>
 
           {/* Description Field */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-200 mb-2">
+              Description <span className="text-red-400">*</span>
             </label>
             <textarea
               required
@@ -172,49 +169,67 @@ export default function AddClassModal({ isOpen, onClose }) {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe what students will learn in this class..."
               rows="4"
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 resize-none"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300 resize-none"
             />
           </div>
 
-          {/* Date and Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+          {/* Date, Time, and Duration */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Date <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">
+                Date <span className="text-red-400">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Time <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">
+                Time <span className="text-red-400">*</span>
               </label>
               <input
                 type="time"
                 required
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">
+                Duration (minutes)
+              </label>
+              <select
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
+              >
+                <option value={30}>30 minutes</option>
+                <option value={45}>45 minutes</option>
+                <option value={60}>1 hour</option>
+                <option value={90}>1.5 hours</option>
+                <option value={120}>2 hours</option>
+                <option value={180}>3 hours</option>
+              </select>
             </div>
           </div>
 
           {/* Category Dropdown */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-200 mb-2">
               Category
             </label>
             <select
               value={formData.categoryId}
               onChange={handleCategoryChange}
               disabled={loading}
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
             >
               <option value="">Select a category (optional)</option>
               {categories.map((cat) => (
@@ -222,20 +237,20 @@ export default function AddClassModal({ isOpen, onClose }) {
               ))}
             </select>
             {loading && (
-              <p className="text-sm text-gray-500 mt-1">Loading categories...</p>
+              <p className="text-sm text-gray-400 mt-1">Loading categories...</p>
             )}
           </div>
 
           {/* Subcategory Dropdown */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-200 mb-2">
               Subcategory
             </label>
             <select
               disabled={!formData.categoryId}
               value={formData.subCategoryId}
               onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
             >
               <option value="">Select a subcategory (optional)</option>
               {subcategories.map((subcat) => (
@@ -243,7 +258,7 @@ export default function AddClassModal({ isOpen, onClose }) {
               ))}
             </select>
             {!formData.categoryId && (
-              <p className="text-sm text-gray-500 mt-1">Please select a category first</p>
+              <p className="text-sm text-gray-400 mt-1">Please select a category first</p>
             )}
           </div>
 
@@ -251,14 +266,14 @@ export default function AddClassModal({ isOpen, onClose }) {
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-3 md:pt-4">
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
             >
               Submit Class
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="sm:px-6 border-2 border-gray-300 text-gray-700 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300"
+              className="sm:px-6 border-2 border-slate-600/50 bg-slate-700/30 text-gray-300 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:bg-slate-600/30 transition-all duration-300"
             >
               Cancel
             </button>

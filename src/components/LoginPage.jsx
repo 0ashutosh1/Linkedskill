@@ -56,7 +56,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 
                     flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8">
       <div className="w-full max-w-sm sm:max-w-md md:max-w-4xl lg:max-w-5xl xl:max-w-6xl 
                       grid grid-cols-1 lg:grid-cols-2 
@@ -64,7 +64,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                       shadow-lg sm:shadow-xl md:shadow-2xl overflow-hidden 
                       animate-fadeIn min-h-[600px] lg:min-h-[700px]">
         {/* Enhanced responsive left side - Branding */}
-        <div className="bg-gradient-to-br from-purple-600 to-pink-600 
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-slate-800 
                         p-4 sm:p-6 md:p-8 lg:p-12 xl:p-16
                         flex flex-col justify-center text-white relative overflow-hidden 
                         order-2 lg:order-1 min-h-[300px] lg:min-h-0">
@@ -152,7 +152,8 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
 
         {/* Enhanced responsive right side - Login Form */}
         <div className="p-4 sm:p-6 md:p-8 lg:p-12 xl:p-16 
-                        flex flex-col justify-center order-1 lg:order-2">
+                        flex flex-col justify-center order-1 lg:order-2
+                        bg-gradient-to-br from-white to-gray-50">
           
           {/* Enhanced responsive form header */}
           <div className="mb-4 sm:mb-6 md:mb-8 text-center lg:text-left">
@@ -208,11 +209,12 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="you@example.com"
                   className="w-full px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 
-                           text-sm md:text-base border-2 border-gray-200 
+                           text-sm md:text-base text-gray-900 bg-white
+                           border-2 border-gray-200 
                            rounded-lg sm:rounded-xl 
-                           focus:border-purple-500 focus:ring-2 focus:ring-purple-200
+                           focus:border-purple-500 focus:ring-2 focus:ring-purple-200/50
                            focus:outline-none transition-all duration-300
-                           hover:border-gray-300 touch-manipulation
+                           hover:border-purple-300 hover:shadow-sm touch-manipulation
                            placeholder:text-gray-400"
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -238,11 +240,12 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••"
                   className="w-full px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 
-                           text-sm md:text-base border-2 border-gray-200 
+                           text-sm md:text-base text-gray-900 bg-white
+                           border-2 border-gray-200 
                            rounded-lg sm:rounded-xl 
-                           focus:border-purple-500 focus:ring-2 focus:ring-purple-200
+                           focus:border-purple-500 focus:ring-2 focus:ring-purple-200/50
                            focus:outline-none transition-all duration-300
-                           hover:border-gray-300 touch-manipulation
+                           hover:border-purple-300 hover:shadow-sm touch-manipulation
                            placeholder:text-gray-400"
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
