@@ -8,17 +8,17 @@ export default function ClassSection({ title, classes, onSeeAll, onJoin, onSelec
       <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-5 lg:mb-6
                       px-3 sm:px-4 md:px-0">
         <h3 className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 
-                       font-semibold text-gray-800 truncate flex-1 mr-4">
+                       font-semibold text-white truncate flex-1 mr-4">
           {title}
         </h3>
         <button 
           onClick={onSeeAll}
           className="text-xs sm:text-sm md:text-base font-semibold 
-                     text-purple-600 hover:text-purple-700 active:text-purple-800
+                     text-purple-400 hover:text-purple-300 active:text-purple-200
                      flex items-center gap-1 hover:gap-2 
                      transition-all duration-300 hover:scale-105 active:scale-95
                      px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg
-                     hover:bg-purple-50 active:bg-purple-100
+                     hover:bg-slate-700/50 active:bg-slate-600/50
                      flex-shrink-0 touch-manipulation"
         >
           <span className="hidden xs:inline">See All</span>
@@ -52,6 +52,8 @@ export default function ClassSection({ title, classes, onSeeAll, onJoin, onSelec
                 description={classItem.description}
                 learners={classItem.learners}
                 level={classItem.level}
+                image={classItem.image}
+                attendees={classItem.attendees}
                 onSelect={onSelect}
                 onJoin={onJoin}
               />
@@ -70,10 +72,10 @@ export default function ClassSection({ title, classes, onSeeAll, onJoin, onSelec
                       d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
               </svg>
             </div>
-            <h4 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 mb-2">
+            <h4 className="text-base sm:text-lg md:text-xl font-semibold text-white mb-2">
               No Classes Available
             </h4>
-            <p className="text-sm sm:text-base text-gray-600 max-w-md">
+            <p className="text-sm sm:text-base text-gray-300 max-w-md">
               Classes for this section will appear here once they become available.
             </p>
           </div>

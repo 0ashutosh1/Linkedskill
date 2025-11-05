@@ -19,6 +19,7 @@ const classSchema = new mongoose.Schema({
     default: 'scheduled' 
   },
   liveUrl: { type: String, default: '' }, // URL for live class (e.g., Zoom, Meet, etc.)
+  meetingId: { type: String, default: null }, // VideoSDK meeting room ID
 }, { timestamps: true });
 
 module.exports = mongoose.model('Class', classSchema);

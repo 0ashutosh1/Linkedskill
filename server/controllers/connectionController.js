@@ -330,23 +330,29 @@ exports.getMyConnections = async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit))
 
-    // Transform data to match frontend format
-    const connectedExperts = connections.map(conn => ({
-      id: conn.expert._id,
-      name: conn.expert.name,
-      expertise: conn.expert.designation || 'Expert',
-      photoUrl: conn.expert.photoUrl,
-      isOnline: false, // Would need real-time status
-      isVerified: true, // Could add verification field to User model
-      lastMessage: '', // Would come from chat messages
-      lastSeen: conn.lastInteraction,
-      email: conn.expert.email,
-      designation: conn.expert.designation,
-      areasOfInterest: conn.expert.areasOfInterest || [],
-      connectionId: conn._id,
-      connectedAt: conn.connectedAt,
-      connectionType: conn.connectionType
-    }))
+    // Fetch profile data for each expert to get photoUrl
+    const Profile = require('../models/Profile')
+    const connectedExpertsPromises = connections.map(async (conn) => {
+      const profile = await Profile.findOne({ userId: conn.expert._id })
+      return {
+        id: conn.expert._id,
+        name: conn.expert.name,
+        expertise: profile?.designation || conn.expert.designation || 'Expert',
+        photoUrl: profile?.photoUrl || '',
+        isOnline: false, // Would need real-time status
+        isVerified: true, // Could add verification field to User model
+        lastMessage: '', // Would come from chat messages
+        lastSeen: conn.lastInteraction,
+        email: conn.expert.email,
+        designation: profile?.designation || conn.expert.designation,
+        areasOfInterest: profile?.areasOfInterest || [],
+        connectionId: conn._id,
+        connectedAt: conn.connectedAt,
+        connectionType: conn.connectionType
+      }
+    })
+
+    const connectedExperts = await Promise.all(connectedExpertsPromises)
 
     const total = await Connection.countDocuments({
       followerId,
@@ -380,17 +386,24 @@ exports.getExpertFollowers = async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit))
 
-    const followers = connections.map(conn => ({
-      id: conn.follower._id,
-      name: conn.follower.name,
-      email: conn.follower.email,
-      photoUrl: conn.follower.photoUrl,
-      designation: conn.follower.designation,
-      connectionId: conn._id,
-      connectedAt: conn.connectedAt,
-      lastInteraction: conn.lastInteraction,
-      connectionType: conn.connectionType
-    }))
+    // Fetch profile data for each follower to get photoUrl
+    const Profile = require('../models/Profile')
+    const followersPromises = connections.map(async (conn) => {
+      const profile = await Profile.findOne({ userId: conn.follower._id })
+      return {
+        id: conn.follower._id,
+        name: conn.follower.name,
+        email: conn.follower.email,
+        photoUrl: profile?.photoUrl || '',
+        designation: profile?.designation || conn.follower.designation,
+        connectionId: conn._id,
+        connectedAt: conn.connectedAt,
+        lastInteraction: conn.lastInteraction,
+        connectionType: conn.connectionType
+      }
+    })
+
+    const followers = await Promise.all(followersPromises)
 
     const total = await Connection.countDocuments({
       expertId,

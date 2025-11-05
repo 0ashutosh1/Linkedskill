@@ -194,29 +194,29 @@ export default function NotificationsPage({ onBack }) {
   const getNotificationColor = (type) => {
     switch (type) {
       case 'info':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-blue-600 text-blue-100 border-blue-500'
       case 'warning':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        return 'bg-yellow-600 text-yellow-100 border-yellow-500'
       case 'error':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-red-600 text-red-100 border-red-500'
       case 'success':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-600 text-green-100 border-green-500'
       case 'reminder':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
+        return 'bg-purple-600 text-purple-100 border-purple-500'
       case 'update':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-200'
+        return 'bg-indigo-600 text-indigo-100 border-indigo-500'
       case 'announcement':
-        return 'bg-pink-100 text-pink-800 border-pink-200'
+        return 'bg-pink-600 text-pink-100 border-pink-500'
       case 'message':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gray-600 text-gray-100 border-gray-500'
       case 'connection_request':
-        return 'bg-orange-100 text-orange-800 border-orange-200'
+        return 'bg-orange-600 text-orange-100 border-orange-500'
       case 'connection_accepted':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-600 text-green-100 border-green-500'
       case 'connection_rejected':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-red-600 text-red-100 border-red-500'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gray-600 text-gray-100 border-gray-500'
     }
   }
 
@@ -243,7 +243,7 @@ export default function NotificationsPage({ onBack }) {
       <div className="animate-fadeIn flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
-          <p className="text-gray-600">Loading notifications...</p>
+          <p className="text-gray-300">Loading notifications...</p>
         </div>
       </div>
     )
@@ -271,7 +271,7 @@ export default function NotificationsPage({ onBack }) {
         <div className="flex items-center gap-4 mb-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -279,8 +279,8 @@ export default function NotificationsPage({ onBack }) {
             Back
           </button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Notifications</h1>
-            <p className="text-gray-600 text-sm mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Notifications</h1>
+            <p className="text-gray-300 text-sm mt-1">
               {unreadCount > 0 ? `${unreadCount} unread notifications` : 'All notifications read'}
             </p>
           </div>
@@ -300,12 +300,12 @@ export default function NotificationsPage({ onBack }) {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 mb-6 shadow-sm border border-slate-600/50">
         <div className="flex flex-wrap gap-4">
           {/* Read Status Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <span className="text-sm font-medium text-gray-200">Status:</span>
+            <div className="flex rounded-lg border border-slate-600 overflow-hidden">
               {['all', 'unread', 'read'].map((status) => (
                 <button
                   key={status}
@@ -313,7 +313,7 @@ export default function NotificationsPage({ onBack }) {
                   className={`px-3 py-1 text-sm font-medium transition ${
                     filter === status
                       ? 'bg-purple-600 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                      : 'bg-slate-700 text-gray-200 hover:bg-slate-600'
                   }`}
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -324,11 +324,11 @@ export default function NotificationsPage({ onBack }) {
 
           {/* Type Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Type:</span>
+            <span className="text-sm font-medium text-gray-200">Type:</span>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-3 py-1 text-sm border border-slate-600 rounded-lg bg-slate-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="all">All Types</option>
               <option value="info">Info</option>
@@ -352,8 +352,8 @@ export default function NotificationsPage({ onBack }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-5-5V9.5a6 6 0 10-12 0V12l-5 5h5a3 3 0 006 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No notifications found</h3>
-          <p className="text-gray-500">
+          <h3 className="text-lg font-semibold text-white mb-2">No notifications found</h3>
+          <p className="text-gray-300">
             {filter === 'unread' ? 'All notifications have been read' : 'No notifications match your current filters'}
           </p>
         </div>
@@ -362,8 +362,8 @@ export default function NotificationsPage({ onBack }) {
           {filteredNotifications.map((notification) => (
             <div
               key={notification._id}
-              className={`bg-white rounded-xl p-4 shadow-sm border transition-all duration-200 ${
-                !notification.is_read ? 'border-l-4 border-l-purple-500 bg-purple-50/30' : 'border-gray-200'
+              className={`bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 shadow-sm border transition-all duration-200 ${
+                !notification.is_read ? 'border-l-4 border-l-purple-500 bg-purple-900/20' : 'border-slate-600/50'
               }`}
             >
               <div className="flex items-start gap-4">
@@ -383,14 +383,14 @@ export default function NotificationsPage({ onBack }) {
                           {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
                         </span>
                         <div className={`w-2 h-2 rounded-full ${getPriorityColor(notification.priority)}`}></div>
-                        <span className="text-xs text-gray-500 capitalize">{notification.priority}</span>
+                        <span className="text-xs text-gray-400 capitalize">{notification.priority}</span>
                         {!notification.is_read && (
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          <span className="px-2 py-0.5 bg-blue-600 text-blue-100 text-xs font-medium rounded-full">
                             New
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-800 text-sm leading-relaxed mb-2">{notification.message}</p>
+                      <p className="text-gray-200 text-sm leading-relaxed mb-2">{notification.message}</p>
                       
                       {/* Connection Request Action Buttons */}
                       {notification.type === 'connection_request' && notification.actionType !== 'handled' && !notification.is_read && (
@@ -410,7 +410,7 @@ export default function NotificationsPage({ onBack }) {
                         </div>
                       )}
                       
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 text-xs text-gray-400">
                         <span>{new Date(notification.createdAt).toLocaleDateString()}</span>
                         <span>{new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         {notification.senderId?.name && (

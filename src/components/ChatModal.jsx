@@ -47,28 +47,58 @@ export default function ChatModal({ isOpen, onClose, expert, connectionId }) {
   const initializeSocket = useCallback(() => {
     const token = getToken();
     if (!token) {
+      console.error('❌ No token available for socket connection');
       setConnectionError(true);
       return;
     }
 
+    console.log('🔌 Initializing socket for connection:', connectionId);
+
     // Connect to socket if not already connected
     if (!socketService.isConnected()) {
-      socketService.connect(token);
-    }
-
-    // Small delay to ensure connection is established before joining room
-    setTimeout(() => {
-      // Join the connection room
+      console.log('🔌 Socket not connected, connecting now...');
+      const socket = socketService.connect(token);
+      
+      // Wait for connection to be established
+      if (socket) {
+        socket.on('connect', () => {
+          console.log('✅ Socket connected, joining room:', connectionId);
+          socketService.joinConnection(connectionId);
+        });
+      }
+    } else {
+      console.log('✅ Socket already connected, joining room:', connectionId);
       socketService.joinConnection(connectionId);
-    }, 100);
+    }
 
     // Register message callback
     messageCallbackId.current = socketService.onMessage((message) => {
+      console.log('💬 Message received in component:', message);
+      console.log('💬 Current connectionId:', connectionId);
+      console.log('💬 Message connectionId:', message.connection);
+      
       if (message.connection === connectionId) {
+        console.log('✅ Message is for this connection, adding to messages');
+        
+        // Get current user to determine if this is their message
+        const currentUser = getCurrentUser();
+        const currentUserId = currentUser.id;
+        
+        // Add isCurrentUser flag to the message
+        const messageWithUserFlag = {
+          ...message,
+          isCurrentUser: message.sender._id === currentUserId
+        };
+        
+        console.log('📝 Current user ID:', currentUserId);
+        console.log('📝 Message sender ID:', message.sender._id);
+        console.log('📝 Is current user:', messageWithUserFlag.isCurrentUser);
+        
         setMessages(prev => {
           // Remove any optimistic message with similar content (for sender)
           const filteredPrev = prev.filter(m => {
             if (m.isOptimistic && m.content === message.content && m.isCurrentUser) {
+              console.log('🗑️ Removing optimistic message:', m._id);
               return false; // Remove optimistic message
             }
             return true;
@@ -77,16 +107,20 @@ export default function ChatModal({ isOpen, onClose, expert, connectionId }) {
           // Check if real message already exists to avoid duplicates
           const exists = filteredPrev.some(m => m._id === message._id);
           if (exists) {
+            console.log('⚠️ Message already exists, not adding:', message._id);
             return prev;
           }
           
-          return [...filteredPrev, message];
+          console.log('✅ Adding new message to list');
+          return [...filteredPrev, messageWithUserFlag];
         });
         
         // Mark message as read if chat is open
         if (isOpen) {
           socketService.markMessagesRead(connectionId);
         }
+      } else {
+        console.log('❌ Message is not for this connection, ignoring');
       }
     });
 
@@ -225,6 +259,8 @@ export default function ChatModal({ isOpen, onClose, expert, connectionId }) {
     }
 
     // Send message via socket
+    console.log('📤 Sending message:', { connectionId, content: messageContent });
+    console.log('📤 Socket connected:', socketService.isConnected());
     socketService.sendMessage(connectionId, messageContent);
     
     // Clear input

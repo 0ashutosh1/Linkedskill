@@ -69,36 +69,7 @@ export default function Sidebar({ onLogoClick, onFriendClick, onNavClick, onLogo
         )}
       </nav>
 
-      {/* Friends section - At the bottom after navigation */}
-      <div className="mb-6 lg:mb-8 px-3 lg:px-4">
-        <h4 className="text-xs text-gray-400 uppercase mb-3 lg:mb-4 font-medium tracking-wider">Friends</h4>
-        <ul className="space-y-2 lg:space-y-3">
-          <li className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-2 lg:p-3 rounded-lg transition-all duration-200 hover:scale-102 active:scale-98" 
-              onClick={() => onFriendClick && onFriendClick({ id: 'andrew', name: 'Andrew Meter', role: 'Software Developer' })}>
-            <img 
-              src="/src/assets/placeholder.svg" 
-              alt="Andrew Meter" 
-              className="w-10 h-10 lg:w-11 lg:h-11 rounded-full object-cover ring-2 ring-gray-600 hover:ring-blue-400 transition-all" 
-            />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm lg:text-base text-gray-200 font-medium truncate">Andrew Meter</div>
-              <div className="text-xs lg:text-sm text-gray-400 truncate">Software Developer</div>
-            </div>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-2 lg:p-3 rounded-lg transition-all duration-200 hover:scale-102 active:scale-98" 
-              onClick={() => onFriendClick && onFriendClick({ id: 'jeff', name: 'Jeff Linkoln', role: 'Product Owner' })}>
-            <img 
-              src="/src/assets/placeholder.svg" 
-              alt="Jeff Linkoln" 
-              className="w-10 h-10 lg:w-11 lg:h-11 rounded-full object-cover ring-2 ring-gray-600 hover:ring-blue-400 transition-all" 
-            />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm lg:text-base text-gray-200 font-medium truncate">Jeff Linkoln</div>
-              <div className="text-xs lg:text-sm text-gray-400 truncate">Product Owner</div>
-            </div>
-          </li>
-        </ul>
-      </div>
+      {/* Friends section removed - was using dummy data */}
 
       {/* Logout button - At the very bottom */}
       <div className="px-3 lg:px-4">

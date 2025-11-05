@@ -15,6 +15,9 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [thumbnailFile, setThumbnailFile] = useState(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState(null)
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
 
   // Fetch categories when modal opens
   useEffect(() => {
@@ -58,6 +61,33 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
     }
   }
 
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, GIF, or WebP)')
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB')
+      return
+    }
+
+    setThumbnailFile(file)
+    
+    // Create preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setThumbnailPreview(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -80,7 +110,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
         date: startTime.toISOString(), // Keep for backward compatibility
         startTime: startTime.toISOString(), // New required field
         duration: formData.duration, // Use form duration
-        image: '', // You can add image upload later
+        image: '', // Will be updated after thumbnail upload
         categoryId: formData.categoryId || undefined,
         subCategoryId: formData.subCategoryId || undefined,
         liveUrl: '' // Optional live streaming URL
@@ -90,6 +120,33 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
 
       // Send to backend API using the classAPI utility
       const result = await classAPI.createClass(classData)
+
+      // Upload thumbnail if provided
+      if (thumbnailFile && result.class?._id) {
+        setUploadingThumbnail(true)
+        try {
+          const formData = new FormData()
+          formData.append('thumbnail', thumbnailFile)
+
+          const uploadResponse = await fetch(`http://localhost:4000/classes/${result.class._id}/upload-thumbnail`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          })
+
+          if (uploadResponse.ok) {
+            console.log('Thumbnail uploaded successfully')
+          } else {
+            console.error('Failed to upload thumbnail')
+          }
+        } catch (uploadError) {
+          console.error('Error uploading thumbnail:', uploadError)
+        } finally {
+          setUploadingThumbnail(false)
+        }
+      }
 
       alert('Class created successfully! 🎉')
       console.log('Created class:', result)
@@ -112,6 +169,8 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
         subCategoryId: ''
       })
       setSubcategories([])
+      setThumbnailFile(null)
+      setThumbnailPreview(null)
     } catch (error) {
       console.error('Error creating class:', error)
       alert('Failed to create class. Please check console for details.')
@@ -260,6 +319,38 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
             {!formData.categoryId && (
               <p className="text-sm text-gray-400 mt-1">Please select a category first</p>
             )}
+          </div>
+
+          {/* Thumbnail Upload */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-200 mb-2">
+              Class Thumbnail
+            </label>
+            <div className="flex items-start gap-4">
+              {thumbnailPreview && (
+                <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-slate-600/50 flex-shrink-0">
+                  <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="flex-1">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl hover:bg-slate-600/50 transition-all duration-300">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm">{thumbnailFile ? 'Change Image' : 'Choose Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailChange}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-400 mt-2">Optional: Upload a thumbnail image (max 5MB)</p>
+                {thumbnailFile && (
+                  <p className="text-xs text-green-400 mt-1">✓ {thumbnailFile.name}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Submit Button */}

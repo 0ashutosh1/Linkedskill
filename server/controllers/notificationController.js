@@ -33,10 +33,19 @@ exports.createNotification = async (req, res) => {
 exports.getMyNotifications = async (req, res) => {
   try {
     const userId = req.user.sub;
+    console.log('========== NOTIFICATION REQUEST ==========');
+    console.log('User ID from token:', userId);
+    console.log('User ID type:', typeof userId);
+    
     const notifications = await Notification.find({ receiverId: userId })
       .populate('senderId', 'name email')
       .sort({ createdAt: -1 });
     
+    console.log('Found notifications:', notifications.length);
+    if (notifications.length > 0) {
+      console.log('Sample notification receiverId:', notifications[0].receiverId, 'Type:', typeof notifications[0].receiverId);
+    }
+    console.log('==========================================');
     res.json({ notifications });
   } catch (err) {
     console.error('Error fetching notifications:', err);

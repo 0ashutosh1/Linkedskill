@@ -132,7 +132,9 @@ export function CompactCountdownTimer({ startTime, onCanStart, className = "" })
 
       const canStartNow = now >= tenMinutesBefore
       setCanStart(canStartNow)
-      onCanStart && onCanStart(canStartNow)
+      if (onCanStart) {
+        onCanStart(canStartNow)
+      }
 
       // Format time for compact display
       const days = Math.floor(difference / (1000 * 60 * 60 * 24))
@@ -152,7 +154,7 @@ export function CompactCountdownTimer({ startTime, onCanStart, className = "" })
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
-  }, [startTime, onCanStart])
+  }, [startTime])
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>

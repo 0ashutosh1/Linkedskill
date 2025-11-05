@@ -13,13 +13,19 @@ console.log('🎯 Root element:', rootElement)
 
 if (!rootElement) {
   console.error('Root element not found!')
+  document.body.innerHTML = '<div style="color: red; padding: 20px;">ERROR: Root element not found!</div>'
 } else {
   const root = createRoot(rootElement)
   console.log('✅ Creating React root and rendering App...')
-  root.render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  )
-  console.log('✅ React rendering completed')
+  try {
+    root.render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    )
+    console.log('✅ React rendering completed')
+  } catch (error) {
+    console.error('❌ Error during render:', error)
+    document.body.innerHTML = '<div style="color: red; padding: 20px;">ERROR: ' + error.message + '</div>'
+  }
 }

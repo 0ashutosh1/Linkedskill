@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { CompactCountdownTimer } from './CountdownTimer'
 import { classAPI } from '../utils/classAPI'
+import { createMeeting } from '../utils/videoSdk'
 
 const API_URL = 'http://localhost:4000'
 
-export default function ProfilePage({ onBack, profile: passedProfile }) {
+export default function ProfilePage({ onBack, profile: passedProfile, onJoinLiveClass, onPhotoUpdate }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const isOwnProfile = !passedProfile || passedProfile.id === 'me'
@@ -37,6 +38,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
   const [showDateFilter, setShowDateFilter] = useState(false)
   const [startingClass, setStartingClass] = useState(null)
   const [classStartStates, setClassStartStates] = useState({})
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -148,17 +150,27 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
     try {
       setLoadingClasses(true)
       const token = localStorage.getItem('authToken')
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
       
-      if (!token || !user.id) return
+      if (!token) return
 
-      const response = await fetch(`${API_URL}/classes/user/${user.id}`, {
+      // Use new endpoint that gets both created AND registered classes
+      const response = await fetch(`${API_URL}/classes/my/all`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
       if (response.ok) {
         const data = await response.json()
-        setMyClasses(data.classes || [])
+        const now = new Date()
+        
+        // Filter out past classes - only show upcoming/live classes
+        const relevantClasses = (data.classes || []).filter(cls => {
+          const classDate = new Date(cls.startTime || cls.date)
+          // Show all upcoming classes and live classes
+          return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+        })
+        
+        console.log('📚 My Classes (created + registered):', relevantClasses.length)
+        setMyClasses(relevantClasses)
       }
     } catch (error) {
       console.error('Error fetching classes:', error)
@@ -275,6 +287,11 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
         setMessage({ type: 'success', text: 'Profile updated successfully!' })
         setIsEditing(false)
         
+        // Call onPhotoUpdate to refresh name and photo in RightPanel
+        if (onPhotoUpdate) {
+          onPhotoUpdate()
+        }
+        
         setTimeout(() => {
           setMessage({ type: '', text: '' })
         }, 3000)
@@ -295,6 +312,113 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
       setMessage({ type: 'error', text: `Network error: ${error.message}` })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      setMessage({ type: 'error', text: 'Please upload a valid image file (JPEG, PNG, GIF, or WebP)' })
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Image size must be less than 5MB' })
+      return
+    }
+
+    try {
+      setUploadingPhoto(true)
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please login to upload photo' })
+        return
+      }
+
+      const formDataUpload = new FormData()
+      formDataUpload.append('photo', file)
+
+      const response = await fetch(`${API_URL}/profile/upload-photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataUpload
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setProfile(prev => ({ ...prev, photoUrl: data.photoUrl }))
+        setFormData(prev => ({ ...prev, photoUrl: data.photoUrl }))
+        setMessage({ type: 'success', text: 'Profile photo updated successfully!' })
+        
+        // Call onPhotoUpdate to refresh photo in RightPanel
+        if (onPhotoUpdate) {
+          onPhotoUpdate()
+        }
+        
+        setTimeout(() => {
+          setMessage({ type: '', text: '' })
+        }, 3000)
+      } else {
+        const errorData = await response.json()
+        setMessage({ type: 'error', text: errorData.error || 'Failed to upload photo' })
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error)
+      setMessage({ type: 'error', text: 'Network error uploading photo' })
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  const handlePhotoRemove = async () => {
+    if (!window.confirm('Are you sure you want to remove your profile photo?')) {
+      return
+    }
+
+    try {
+      setUploadingPhoto(true)
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please login to remove photo' })
+        return
+      }
+
+      const response = await fetch(`${API_URL}/profile/remove-photo`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setProfile(prev => ({ ...prev, photoUrl: '' }))
+        setFormData(prev => ({ ...prev, photoUrl: '' }))
+        setMessage({ type: 'success', text: 'Profile photo removed successfully!' })
+        
+        // Call onPhotoUpdate to refresh photo in RightPanel
+        if (onPhotoUpdate) {
+          onPhotoUpdate()
+        }
+        
+        setTimeout(() => {
+          setMessage({ type: '', text: '' })
+        }, 3000)
+      } else {
+        const errorData = await response.json()
+        setMessage({ type: 'error', text: errorData.error || 'Failed to remove photo' })
+      }
+    } catch (error) {
+      console.error('Error removing photo:', error)
+      setMessage({ type: 'error', text: 'Network error removing photo' })
+    } finally {
+      setUploadingPhoto(false)
     }
   }
 
@@ -394,15 +518,31 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
     try {
       setStartingClass(classItem._id)
       
+      // Create VideoSDK meeting room
+      console.log('🎥 Creating meeting room...')
+      const meetingId = await createMeeting()
+      console.log('✅ Meeting created:', meetingId)
+      
+      // Update class with meeting ID and start it
+      const token = localStorage.getItem('authToken')
+      await fetch(`${API_URL}/classes/${classItem._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ meetingId: meetingId })
+      })
+      
       const result = await classAPI.startClass(classItem._id)
       
       setMessage({ type: 'success', text: `Class "${classItem.title}" has been started successfully! 🎉` })
       
-      // Update the class in the local state to reflect the new status
+      // Update the class in the local state to reflect the new status and meeting ID
       setMyClasses(prevClasses => 
         prevClasses.map(cls => 
           cls._id === classItem._id 
-            ? { ...cls, status: 'live' }
+            ? { ...cls, status: 'live', meetingId: meetingId }
             : cls
         )
       )
@@ -495,7 +635,7 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
 
               {/* Avatar */}
               <div className="flex items-center mb-6">
-                <div className="w-20 h-20 bg-slate-700/50 border border-slate-600/50 rounded-full flex items-center justify-center">
+                <div className="relative w-20 h-20 bg-slate-700/50 border border-slate-600/50 rounded-full flex items-center justify-center group">
                   {profile?.photoUrl ? (
                     <img src={profile.photoUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -503,10 +643,46 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                       <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   )}
+                  {isOwnProfile && (
+                    <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                        disabled={uploadingPhoto}
+                      />
+                      {uploadingPhoto ? (
+                        <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
+                    </label>
+                  )}
                 </div>
-                <div className="ml-4">
+                <div className="ml-4 flex-1">
                   <h4 className="font-semibold text-gray-200">{profile?.name || formData.name || 'KUMAR ASHUTOSH'}</h4>
                   <p className="text-sm text-gray-400">{profile?.email || formData.email || 'COOL.ASHUTOSH@GMAIL.COM'}</p>
+                  {isOwnProfile && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <p className="text-xs text-gray-500">Hover to change photo</p>
+                      {profile?.photoUrl && (
+                        <button
+                          onClick={handlePhotoRemove}
+                          disabled={uploadingPhoto}
+                          className="text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -915,6 +1091,27 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-gray-200 text-lg">{classItem.title}</h3>
+                              
+                              {/* Created vs Registered Badge */}
+                              {(() => {
+                                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                                const currentUserId = currentUser.sub || currentUser.id || currentUser._id;
+                                const classOwnerId = classItem.userId?._id || classItem.userId;
+                                
+                                if (classOwnerId && currentUserId) {
+                                  return classOwnerId === currentUserId ? (
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                      👨‍🏫 Created by me
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                                      ✅ Registered
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              
                               {/* Status Badge */}
                               {classItem.status && (
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium
@@ -998,11 +1195,36 @@ export default function ProfilePage({ onBack, profile: passedProfile }) {
 
                             {/* Live Class Status */}
                             {classItem.status === 'live' && (
-                              <div className="mb-3 p-3 bg-red-500/10 rounded-lg border border-red-500/30">
-                                <div className="flex items-center gap-2 text-red-400">
-                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                  <span className="text-sm font-medium">Class is currently live!</span>
+                              <div className="mb-3">
+                                <div className="mb-2 p-3 bg-red-500/10 rounded-lg border border-red-500/30">
+                                  <div className="flex items-center gap-2 text-red-400">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                    <span className="text-sm font-medium">Class is currently live!</span>
+                                  </div>
                                 </div>
+                                <button
+                                  onClick={() => {
+                                    if (onJoinLiveClass) {
+                                      onJoinLiveClass({
+                                        classId: classItem._id,
+                                        title: classItem.title,
+                                        userId: classItem.userId,
+                                        meetingId: classItem.meetingId,
+                                        startTime: classItem.startTime,
+                                        description: classItem.description,
+                                        category: classItem.category
+                                      });
+                                    }
+                                  }}
+                                  className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 
+                                           text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 
+                                           hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                  </svg>
+                                  Join Live Class Now
+                                </button>
                               </div>
                             )}
                           </div>

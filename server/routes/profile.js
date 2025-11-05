@@ -2,9 +2,16 @@ const express = require('express');
 const router = express.Router();
 const profileController = require('../controllers/profileController');
 const { authenticate } = require('../middleware/auth');
+const { uploadProfile } = require('../middleware/upload');
 
 // All profile routes require authentication
 router.use(authenticate);
+
+// Upload profile photo
+router.post('/upload-photo', uploadProfile.single('photo'), profileController.uploadProfilePhoto);
+
+// Remove profile photo
+router.delete('/remove-photo', profileController.removeProfilePhoto);
 
 // Create or update profile
 router.post('/', profileController.createOrUpdateProfile);

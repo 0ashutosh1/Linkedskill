@@ -78,7 +78,10 @@ class SocketService {
 
       // Handle incoming messages
       this.socket.on('new_message', (message) => {
-        this.messageCallbacks.forEach((callback) => {
+        console.log('📬 Received new message:', message);
+        console.log('📬 Number of callbacks:', this.messageCallbacks.size);
+        this.messageCallbacks.forEach((callback, id) => {
+          console.log('📬 Executing callback:', id);
           callback(message);
         });
       });
@@ -139,26 +142,29 @@ class SocketService {
 
   joinConnection(connectionId) {
     if (this.socket && this.connected) {
-      console.log('Joining connection room:', connectionId);
-      this.socket.emit('join_connection', { connectionId });
+      console.log('📥 Joining connection room:', connectionId);
+      this.socket.emit('join_connection', connectionId); // Send just the ID, not an object
+    } else {
+      console.warn('⚠️ Cannot join connection - socket not connected');
     }
   }
 
   leaveConnection(connectionId) {
     if (this.socket && this.connected) {
-      console.log('Leaving connection room:', connectionId);
-      this.socket.emit('leave_connection', { connectionId });
+      console.log('📤 Leaving connection room:', connectionId);
+      this.socket.emit('leave_connection', connectionId); // Send just the ID, not an object
     }
   }
 
   sendMessage(connectionId, content) {
     if (this.socket && this.connected) {
+      console.log('📨 Sending message via socket:', { connectionId, content: content.substring(0, 50) });
       this.socket.emit('send_message', {
         connectionId: connectionId,
         content: content
       });
     } else {
-      console.warn('Socket not connected, cannot send message');
+      console.warn('⚠️ Socket not connected, cannot send message. Connected:', this.connected);
     }
   }
 

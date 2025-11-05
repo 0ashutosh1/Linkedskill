@@ -14,10 +14,14 @@ export default function RightPanel({
   onStudentChatClick, 
   onStudentProfileClick,
   upcomingClasses = [],
-  onClassUpdate
+  onClassUpdate,
+  userPhotoUrl = '',
+  userName = '',
+  onPhotoUpdate
 }){
   const user = getCurrentUser()
-  const fullName = user?.name || 'User'
+  // Use userName prop if available, otherwise fall back to token name
+  const fullName = userName || user?.name || 'User'
   const isExpert = user?.role?.name === 'expert'
   // Extract first name only and convert to uppercase
   const firstName = fullName.split(' ')[0].toUpperCase()
@@ -45,20 +49,19 @@ export default function RightPanel({
                tabIndex={0}
                onKeyDown={(e) => e.key === 'Enter' && onProfileClick()}>
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-700/50 border border-slate-600/50 flex items-center justify-center 
-                           group-hover:scale-105 transition-all duration-300 shadow-lg group-hover:shadow-xl group-hover:shadow-blue-500/20">
-              <img 
-                src="/src/assets/placeholder.svg" 
-                alt="avatar" 
-                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-slate-500 shadow-md" 
-              />
+                           group-hover:scale-105 transition-all duration-300 shadow-lg group-hover:shadow-xl group-hover:shadow-blue-500/20 overflow-hidden">
+              {userPhotoUrl ? (
+                <img 
+                  src={userPhotoUrl} 
+                  alt="Profile" 
+                  className="w-full h-full rounded-full object-cover border-2 border-slate-500 shadow-md" 
+                />
+              ) : (
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
             </div>
-            {/* Animated progress ring */}
-            <svg className="absolute -top-1 -left-1 w-18 h-18 sm:w-22 sm:h-22 group-hover:rotate-12 transition-transform duration-500" 
-                 viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="60" cy="60" r="54" stroke="#475569" strokeWidth="8" className="opacity-50" />
-              <path d="M16 60a44 44 0 0 0 88 0" stroke="#3B82F6" strokeWidth="6" strokeLinecap="round" 
-                    className="group-hover:stroke-cyan-400 transition-colors duration-300" />
-            </svg>
           </div>
 
           {/* Greeting and message */}

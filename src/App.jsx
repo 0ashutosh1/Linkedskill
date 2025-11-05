@@ -6,6 +6,8 @@ import NotificationsPage from './components/NotificationsPage'
 import AddClassModal from './components/AddClassModal'
 import LoginPage from './components/LoginPage'
 import SignupPage from './components/SignupPage'
+import AllClassesPage from './components/AllClassesPage'
+import LiveClassPage from './components/LiveClassPage'
 
 import Sidebar from './components/Sidebar'
 import RightPanel from './components/RightPanel'
@@ -20,9 +22,6 @@ import { classAPI } from './utils/classAPI'
 import logo from './assets/LinkedSkill.jpg'
 
 export default function App() {
-  // Debug logging
-  console.log('App component rendering...');
-
   const [appLoading, setAppLoading] = useState(true)
   const [route, setRoute] = useState('home')
   const [selectedProfile, setSelectedProfile] = useState(null)
@@ -46,6 +45,20 @@ export default function App() {
   // Upcoming Classes state (for right panel)
   const [upcomingClasses, setUpcomingClasses] = useState([])
   const [classesLoading, setClassesLoading] = useState(false)
+  
+  // User profile photo and name state
+  const [userPhotoUrl, setUserPhotoUrl] = useState('')
+  const [userName, setUserName] = useState('')
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false)
+
+  // Dynamic category-based classes state
+  const [categoriesWithClasses, setCategoriesWithClasses] = useState([])
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState(new Set())
+  
+  // All Classes page state
+  const [allClassesData, setAllClassesData] = useState(null)
+  const [allClassesCategory, setAllClassesCategory] = useState(null)
 
   // Fetch connected experts
   const fetchConnectedExperts = useCallback(async () => {
@@ -73,10 +86,12 @@ export default function App() {
       
       if (response.ok) {
         const data = await response.json()
-        // Filter for upcoming scheduled and live classes
-        const upcoming = data.classes?.filter(cls => 
-          cls.status === 'scheduled' || cls.status === 'live'
-        ).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)) || []
+        // Filter for truly upcoming classes (future dates only)
+        const now = new Date()
+        const upcoming = data.classes?.filter(cls => {
+          const classDate = new Date(cls.startTime || cls.date)
+          return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+        }).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)) || []
         
         setUpcomingClasses(upcoming)
       }
@@ -85,6 +100,76 @@ export default function App() {
       setUpcomingClasses([])
     } finally {
       setClassesLoading(false)
+    }
+  }, [])
+  
+  // Fetch user profile photo and name
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) return
+
+      console.log('🔍 Fetching user profile...')
+      const response = await fetch('http://localhost:4000/profile/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUserPhotoUrl(data.profile?.photoUrl || '')
+        // Update the user name from profile if available (profile.userId is populated with user data)
+        if (data.profile?.userId?.name) {
+          setUserName(data.profile.userId.name)
+        } else if (data.profile?.name) {
+          setUserName(data.profile.name)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }, [])
+
+  // Fetch classes by category - Dynamic approach
+  const fetchClassesByCategories = useCallback(async () => {
+    setCategoriesLoading(true)
+    try {
+      // First get all categories
+      const categoriesResponse = await fetch('http://localhost:4000/categories')
+      if (!categoriesResponse.ok) {
+        throw new Error('Failed to fetch categories')
+      }
+      const categoriesData = await categoriesResponse.json()
+      
+      const now = new Date()
+      
+      // Then fetch classes for each category in parallel
+      const categoryPromises = categoriesData.categories.map(async (category) => {
+        const classesData = await classAPI.getClassesByCategory(category.name)
+        
+        // Filter out past classes - only show upcoming/live classes
+        const upcomingClasses = classesData.classes?.filter(cls => {
+          const classDate = new Date(cls.startTime || cls.date)
+          return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+        }) || []
+        
+        return {
+          name: category.name,
+          classes: upcomingClasses.map(cls => classAPI.transformClassData(cls, category.name))
+        }
+      })
+      
+      const categoryResults = await Promise.all(categoryPromises)
+      
+      // Filter out categories with no classes
+      const categoriesWithClassesData = categoryResults.filter(category => category.classes.length > 0)
+      
+      setCategoriesWithClasses(categoriesWithClassesData)
+      console.log('Categories with classes (upcoming only):', categoriesWithClassesData.map(c => `${c.name} (${c.classes.length} classes)`))
+    } catch (error) {
+      console.error('Error fetching classes by categories:', error)
+      setCategoriesWithClasses([])
+    } finally {
+      setCategoriesLoading(false)
     }
   }, [])
 
@@ -99,6 +184,8 @@ export default function App() {
       if (authenticated) {
         fetchConnectedExperts()
         fetchUpcomingClasses()
+        fetchClassesByCategories()
+        fetchUserProfile()
       }
       
       // App is ready to render
@@ -117,14 +204,17 @@ export default function App() {
     setRoute('home')
     fetchConnectedExperts() // Fetch connections after login
     fetchUpcomingClasses() // Fetch classes after login
+    fetchClassesByCategories() // Fetch category classes after login
+    fetchUserProfile() // Fetch profile photo after login
   }
 
   function handleSignup(data) {
-    console.log('Signup successful:', data)
     setIsAuthenticated(true)
     setRoute('home')
     fetchConnectedExperts() // Fetch connections after signup
     fetchUpcomingClasses() // Fetch classes after signup
+    fetchClassesByCategories() // Fetch category classes after signup
+    fetchUserProfile() // Fetch profile photo after signup
   }
 
   function handleLogout() {
@@ -173,7 +263,6 @@ export default function App() {
 
   // Fetch classes by category
   const handleCategoryClick = useCallback(async (category) => {
-    console.log('Selected category:', category.name);
     setSelectedCategory(category);
     setLoadingClasses(true);
     
@@ -181,8 +270,16 @@ export default function App() {
       const response = await fetch(`http://localhost:4000/classes?categoryId=${category._id}`);
       const data = await response.json();
       
+      const now = new Date();
+      
+      // Filter out past classes - only show upcoming/live classes
+      const upcomingClassesOnly = (data.classes || []).filter(cls => {
+        const classDate = new Date(cls.startTime || cls.date);
+        return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now;
+      });
+      
       // Transform backend data to match frontend format
-      const transformedClasses = (data.classes || []).map(cls => ({
+      const transformedClasses = upcomingClassesOnly.map(cls => ({
         title: cls.title,
         tag: category.name,
         author: cls.userId?.name || 'Expert Instructor',
@@ -193,7 +290,9 @@ export default function App() {
         classId: cls._id, // This is crucial for join functionality
         description: cls.description,
         learners: cls.interestedCount?.toString() || '0',
-        level: 'Intermediate'
+        level: 'Intermediate',
+        image: cls.image || '',
+        attendees: cls.attendees || []
       }));
       
       setCategoryClasses(transformedClasses);
@@ -211,17 +310,56 @@ export default function App() {
     setCategoryClasses([]);
   }, [])
 
+  // Handle "See All" for upcoming classes
+  const handleSeeAllUpcoming = useCallback(() => {
+    setShowAllUpcoming(!showAllUpcoming);
+  }, [showAllUpcoming])
+
+  // Handle "See All" for category classes
+  const handleSeeAllCategory = useCallback((categoryName, allClasses = null) => {
+    setAllClassesCategory(categoryName)
+    setAllClassesData(allClasses)
+    setRoute('all-classes')
+  }, [])
+
+  // Handle back from All Classes page
+  const handleBackFromAllClasses = useCallback(() => {
+    setAllClassesData(null)
+    setAllClassesCategory(null)
+    setRoute('home')
+  }, [])
+
   // Handle starting a class (for instructors)
   const handleStartClass = useCallback(async ({ classId, title, startTime }) => {
     try {
-      console.log('Starting class:', { classId, title, startTime })
       const result = await classAPI.startClass(classId)
       
-      // Show success notification
-      alert(`Class "${title}" has been started successfully! Students will be notified.`)
+      // Fetch the updated class data to get the full class object
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`http://localhost:4000/classes/${classId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       
-      // You could also redirect to a live class interface here
-      // setRoute('live-class')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Class started, navigating to live class:', data.class)
+        
+        // Make sure userId is set - use current user's ID as owner
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+        const currentUserId = currentUser.sub || currentUser._id || currentUser.id
+        
+        // Navigate to live class page
+        setCurrentCourse({
+          ...data.class,
+          classId: data.class._id,
+          title: data.class.title,
+          userId: data.class.userId || currentUserId
+        })
+        setRoute('live-class')
+      } else {
+        // Show success notification if we can't fetch updated data
+        alert(`Class "${title}" has been started successfully! Students will be notified.`)
+      }
       
       return result
     } catch (error) {
@@ -240,14 +378,41 @@ export default function App() {
         return
       }
 
-      const { status, classId, title } = classData
+      let { status, classId, title, meetingId } = classData
       console.log('App: Attempting to join class:', classData)
       
-      if (status === 'live') {
-        // Join live class immediately
-        console.log('Joining live class:', title)
-        alert(`Joining live class: "${title}"`)
-        // window.open(liveUrl, '_blank') // If you have a live URL
+      // Fetch fresh class data to check if it has been started (has meetingId)
+      if (classId && !meetingId) {
+        try {
+          const checkResponse = await fetch(`http://localhost:4000/classes/${classId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (checkResponse.ok) {
+            const freshClassData = await checkResponse.json()
+            console.log('📡 Fetched fresh class data:', freshClassData)
+            
+            // Update with fresh data
+            if (freshClassData.class) {
+              meetingId = freshClassData.class.meetingId
+              status = freshClassData.class.status
+              classData = freshClassData.class
+            }
+          }
+        } catch (error) {
+          console.warn('Could not fetch fresh class data:', error)
+        }
+      }
+      
+      // If class has a meetingId or status is 'live', join the live class
+      if (status === 'live' || meetingId) {
+        // Class is currently live - navigate to live class page
+        console.log('🎥 Joining live class:', classData)
+        setCurrentCourse(classData)
+        setRoute('live-class')
+        return
       } else if (status === 'scheduled' && classId) {
         // Check if user is already registered for this class
         const checkResponse = await fetch('http://localhost:4000/classes', {
@@ -355,9 +520,10 @@ export default function App() {
         onClose={() => setIsAddClassModalOpen(false)}
         onClassCreated={() => {
           fetchUpcomingClasses()
+          fetchClassesByCategories() // Refresh all category classes
           // Also refresh category classes if a category is selected
           if (selectedCategory) {
-            fetchClassesByCategory(selectedCategory)
+            handleCategoryClick(selectedCategory)
           }
         }}
       />
@@ -431,7 +597,7 @@ export default function App() {
             pt-14 sm:pt-16 lg:pt-0 
             px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 
             py-4 sm:py-6 lg:py-8 xl:py-10
-            lg:overflow-y-auto lg:overflow-x-visible
+            lg:overflow-y-auto lg:overflow-x-hidden
             min-h-screen lg:min-h-0 lg:h-full
           `}>
             {/* Enhanced responsive header */}
@@ -504,7 +670,7 @@ export default function App() {
                       </svg>
                       Back
                     </button>
-                    <h3 className="text-base md:text-xl font-semibold text-gray-800">
+                    <h3 className="text-base md:text-xl font-semibold text-white">
                       {selectedCategory.name} Classes
                     </h3>
                   </div>
@@ -527,7 +693,7 @@ export default function App() {
                       </svg>
                       Back
                     </button>
-                    <h3 className="text-base md:text-xl font-semibold text-gray-800">
+                    <h3 className="text-base md:text-xl font-semibold text-white">
                       {selectedCategory.name} Classes ({categoryClasses.length})
                     </h3>
                   </div>
@@ -554,7 +720,7 @@ export default function App() {
                       </svg>
                       Back
                     </button>
-                    <h3 className="text-base md:text-xl font-semibold text-gray-800">
+                    <h3 className="text-base md:text-xl font-semibold text-white">
                       {selectedCategory.name} Classes
                     </h3>
                   </div>
@@ -566,217 +732,120 @@ export default function App() {
             </>
           )}
 
-          {/* Upcoming Classes */}
+          {/* Upcoming Classes - Dynamic Data */}
           <CarouselSection 
             title="My Upcoming Classes"
-            classes={[
-              {
-                title: "Beginner's Guide To Becoming A Professional Frontend Developer",
-                tag: "Tech",
-                author: "Alex Morgan",
-                date: "Oct 5, 2025",
-                time: "2h 30m",
-                startTime: "2025-10-25T14:30:00Z", // Tomorrow at 2:30 PM UTC
-                status: "scheduled",
-                classId: "demo-class-1",
-                description: "Master modern frontend development with React, HTML5, CSS3, and JavaScript. Build responsive, interactive web applications from scratch.",
-                learners: "8,245",
-                level: "Beginner"
-              },
-              {
-                title: "Beginner's Guide To Becoming A Professional Backend Developer",
-                tag: "Tech",
-                author: "Sarah Chen",
-                date: "Oct 3, 2025",
-                time: "3h 15m",
-                description: "Learn server-side programming, databases, APIs, and cloud deployment. Build scalable backend systems and RESTful services.",
-                learners: "6,892",
-                level: "Beginner"
-              },
-              {
-                title: "Investment Strategies for Beginners",
-                tag: "Finance",
-                author: "David Thompson",
-                date: "Oct 1, 2025",
-                time: "1h 45m",
-                description: "Learn fundamental investment principles and build a diversified portfolio for long-term wealth.",
-                learners: "3,892",
-                level: "Beginner"
-              }
-            ]}
-            onSeeAll={() => console.log('See all Upcoming classes')}
-            onSelect={(c) => setCurrentCourse(c)}
-            onJoin={handleJoinClass}
-            onStart={handleStartClass}
+            classes={(showAllUpcoming ? upcomingClasses : upcomingClasses.slice(0, 4)).map(cls => ({
+              title: cls.title,
+              tag: cls.categoryId?.name || 'General',
+              author: cls.userId?.name || 'Expert Instructor',
+              date: new Date(cls.startTime || cls.date).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+              }),
+              time: cls.duration ? `${cls.duration}min` : '2h 30m',
+              startTime: cls.startTime || cls.date,
+              status: cls.status || 'scheduled',
+              classId: cls._id,
+              description: cls.description || 'Join this upcoming class session.',
+              learners: cls.attendees?.length?.toString() || '0',
+              level: cls.level || 'Intermediate',
+              image: cls.image || '',
+              attendees: cls.attendees || []
+            }))}
+            onSeeAll={upcomingClasses.length > 4 ? handleSeeAllUpcoming : undefined}
+            seeAllText={showAllUpcoming ? "Show Less" : "Show All"}
+              onSelect={(c) => { setCurrentCourse(c); setRoute('live-class'); }}
+              onJoin={handleJoinClass}
+              onStart={handleStartClass}
           />
 
-          {/* Tech Classes */}
-          <div className="mt-8 mb-8">
-            <CarouselSection 
-              title="Tech Classes"
-            classes={[
-              {
-                title: "Advanced React Patterns & Best Practices",
-                tag: "Tech",
-                author: "Alex Morgan",
-                date: "Oct 10, 2025",
-                time: "2h 30m",
-                description: "Master advanced React patterns, performance optimization, and modern development practices.",
-                learners: "5,234",
-                level: "Advanced"
-              },
-              {
-                title: "Full Stack JavaScript Development",
-                tag: "Tech",
-                author: "Sarah Chen",
-                date: "Oct 12, 2025",
-                time: "3h 15m",
-                description: "Build complete web applications using Node.js, Express, MongoDB, and React.",
-                learners: "7,892",
-                level: "Intermediate"
-              },
-              {
-                title: "Cloud Computing with AWS",
-                tag: "Tech",
-                author: "Michael Ross",
-                date: "Oct 15, 2025",
-                time: "2h 45m",
-                description: "Learn to deploy and manage scalable applications on Amazon Web Services.",
-                learners: "4,521",
-                level: "Intermediate"
-              }
-            ]}
-            onSeeAll={() => console.log('See all Tech classes')}
-            onSelect={(c) => setCurrentCourse(c)}
-            onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
-          />
-          </div>
+          {/* Dynamic Category Classes - Only show categories that have classes */}
+          {categoriesLoading ? (
+            // Show loading skeletons for categories while loading
+            <div className="space-y-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="mt-8 mb-8">
+                  <CarouselSection 
+                    title="Loading Classes..."
+                    classes={[]}
+                    loading={true}
+                    onSeeAll={() => {}}
+                    onSelect={() => {}}
+                    onJoin={() => {}}
+                    onStart={() => {}}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Render categories with classes dynamically
+            categoriesWithClasses.map((category, index) => {
+              const isExpanded = expandedCategories.has(category.name)
+              const displayClasses = isExpanded ? category.classes : category.classes.slice(0, 4)
+              const hasMoreClasses = category.classes.length > 4
+              
+              return (
+                <div key={category.name} className="mt-8 mb-8">
+                  <CarouselSection 
+                    title={`${category.name} Classes`}
+                    classes={displayClasses}
+                    loading={false}
+                    onSeeAll={hasMoreClasses ? () => handleSeeAllCategory(category.name, category.classes) : undefined}
+                    seeAllText="See All"
+                    onSelect={(c) => { setCurrentCourse(c); setRoute('live-class'); }}
+                    onJoin={handleJoinClass}
+                    onStart={handleStartClass}
+                  />
+                </div>
+              )
+            })
+          )}
 
-          {/* Finance Classes */}
-          <CarouselSection 
-            title="Finance Classes"
-            classes={[
-              {
-                title: "Investment Strategies for Beginners",
-                tag: "Finance",
-                author: "David Thompson",
-                date: "Oct 11, 2025",
-                time: "1h 45m",
-                description: "Learn fundamental investment principles and build a diversified portfolio.",
-                learners: "3,892",
-                level: "Beginner"
-              },
-              {
-                title: "Cryptocurrency & Blockchain Essentials",
-                tag: "Finance",
-                author: "Emma Wilson",
-                date: "Oct 13, 2025",
-                time: "2h 15m",
-                description: "Understand crypto markets, blockchain technology, and digital asset trading.",
-                learners: "6,234",
-                level: "Beginner"
-              },
-              {
-                title: "Financial Analysis & Modeling",
-                tag: "Finance",
-                author: "James Anderson",
-                date: "Oct 16, 2025",
-                time: "3h 00m",
-                description: "Master financial modeling, valuation techniques, and data-driven decisions.",
-                learners: "2,156",
-                level: "Advanced"
-              }
-            ]}
-            onSeeAll={() => console.log('See all Finance classes')}
-            onSelect={(c) => setCurrentCourse(c)}
-            onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
-          />
-
-          {/* Sports & Fitness Classes */}
-          <CarouselSection 
-            title="Sports & Fitness Classes"
-            classes={[
-              {
-                title: "Yoga for Stress Relief & Flexibility",
-                tag: "Sports",
-                author: "Lisa Rodriguez",
-                date: "Oct 9, 2025",
-                time: "1h 15m",
-                description: "Gentle yoga practices to reduce stress, improve flexibility, and mindfulness.",
-                learners: "4,567",
-                level: "Beginner"
-              },
-              {
-                title: "HIIT Training: Maximum Results",
-                tag: "Sports",
-                author: "Marcus Johnson",
-                date: "Oct 14, 2025",
-                time: "45m",
-                description: "High-intensity interval training for fat loss and cardiovascular fitness.",
-                learners: "5,891",
-                level: "Intermediate"
-              },
-              {
-                title: "Marathon Training Program",
-                tag: "Sports",
-                author: "Nina Patel",
-                date: "Oct 17, 2025",
-                time: "2h 00m",
-                description: "Complete 12-week marathon training plan for beginners and intermediates.",
-                learners: "2,345",
-                level: "Intermediate"
-              }
-            ]}
-            onSeeAll={() => console.log('See all Sports classes')}
-            onSelect={(c) => setCurrentCourse(c)}
-            onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
-          />
-
-          {/* Music Classes */}
-          <CarouselSection 
-            title="Music Classes"
-            classes={[
-              {
-                title: "Guitar Fundamentals for Beginners",
-                tag: "Music",
-                author: "Chris Martin",
-                date: "Oct 10, 2025",
-                time: "1h 30m",
-                description: "Learn basic chords, strumming patterns, and play your first songs.",
-                learners: "7,234",
-                level: "Beginner"
-              },
-              {
-                title: "Music Production with Ableton Live",
-                tag: "Music",
-                author: "Sophie Taylor",
-                date: "Oct 15, 2025",
-                time: "2h 45m",
-                description: "Create professional music tracks using Ableton Live and modern production techniques.",
-                learners: "3,567",
-                level: "Intermediate"
-              },
-              {
-                title: "Singing Techniques & Vocal Training",
-                tag: "Music",
-                author: "Olivia Brown",
-                date: "Oct 18, 2025",
-                time: "1h 20m",
-                description: "Improve your vocal range, tone, and singing technique with proven methods.",
-                learners: "4,892",
-                level: "Beginner"
-              }
-            ]}
-            onSeeAll={() => console.log('See all Music classes')}
-            onSelect={(c) => setCurrentCourse(c)}
-            onJoin={(c) => { setCurrentCourse(c); setRoute('references'); }}
-          />
+          {/* Show message if no categories have classes */}
+          {!categoriesLoading && categoriesWithClasses.length === 0 && (
+            <div className="mt-8 mb-8 text-center py-12">
+              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-full p-8 mx-auto w-24 h-24 mb-6 flex items-center justify-center">
+                <svg className="w-12 h-12 text-purple-600 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-2">
+                No Classes Available Yet
+              </h4>
+              <p className="text-gray-300 max-w-md mx-auto">
+                Classes will appear here once experts create them. Be the first to create a class using the "Add Class" button!
+              </p>
+            </div>
+          )}
 
               </>
             ) : route === 'profile' ? (
-              <ProfilePage profile={selectedProfile} onBack={() => { setRoute('home'); setSelectedProfile(null); }} />
+              <ProfilePage 
+                profile={selectedProfile} 
+                onBack={() => { setRoute('home'); setSelectedProfile(null); }}
+                onJoinLiveClass={(classData) => {
+                  console.log('🎥 Joining live class:', classData);
+                  setCurrentCourse(classData);
+                  setRoute('live-class');
+                }}
+                onPhotoUpdate={fetchUserProfile}
+              />
             ) : route === 'references' ? (
               <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
+            ) : route === 'live-class' ? (
+              <LiveClassPage classData={currentCourse} onBack={() => setRoute('home')} />
+            ) : route === 'all-classes' ? (
+              <AllClassesPage 
+                categoryName={allClassesCategory}
+                allClasses={allClassesData}
+                onBack={handleBackFromAllClasses}
+                onJoin={handleJoinClass}
+                onSelect={(c) => { setCurrentCourse(c); setRoute('live-class'); }}
+                onStart={handleStartClass}
+              />
             ) : route === 'experts' ? (
               <ExpertsPage onBack={() => setRoute('home')} />
             ) : route === 'notifications' ? (
@@ -803,6 +872,9 @@ export default function App() {
                   connectionsLoading={connectionsLoading}
                   upcomingClasses={upcomingClasses}
                   onClassUpdate={fetchUpcomingClasses}
+                  userPhotoUrl={userPhotoUrl}
+                  userName={userName}
+                  onPhotoUpdate={fetchUserProfile}
                 />
               </div>
             </aside>

@@ -2,18 +2,28 @@ const express = require('express');
 const router = express.Router();
 const classController = require('../controllers/classController');
 const { authenticate } = require('../middleware/auth');
+const { uploadThumbnail } = require('../middleware/upload');
 
 // Create a new class (protected route)
 router.post('/', authenticate, classController.createClass);
 
+// Upload class thumbnail (protected route - only for class owner) - MUST BE BEFORE /:id
+router.post('/:id/upload-thumbnail', authenticate, uploadThumbnail.single('thumbnail'), classController.uploadThumbnail);
+
 // Get all classes
 router.get('/', classController.getAllClasses);
 
+// Get classes where current user is registered (protected route) - MUST BE BEFORE /:id
+router.get('/registered/me', authenticate, classController.getRegisteredClasses);
+
+// Get all classes related to current user - both created and registered (protected route) - MUST BE BEFORE /:id
+router.get('/my/all', authenticate, classController.getMyClasses);
+
+// Get classes by user ID - MUST BE BEFORE /:id
+router.get('/user/:userId', classController.getClassesByUser);
+
 // Get a single class by ID
 router.get('/:id', classController.getClassById);
-
-// Get classes by user ID
-router.get('/user/:userId', classController.getClassesByUser);
 
 // Update a class (protected route)
 router.put('/:id', authenticate, classController.updateClass);

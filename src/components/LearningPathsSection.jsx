@@ -255,6 +255,8 @@ export default function LearningPathsSection() {
                 description={path.description}
                 learners={path.learners}
                 level={path.level}
+                image={path.image}
+                attendees={path.attendees}
                 onSelect={(course) => console.log('Selected learning path:', course)}
                 onJoin={(course) => console.log('Joined learning path:', course)}
               />

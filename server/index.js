@@ -4,6 +4,8 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
+const { initializeAgenda, stopAgenda } = require('./lib/scheduler');
+const { defineClassJobs } = require('./jobs/classJobs');
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/class');
 const notificationRoutes = require('./routes/notification');
@@ -14,6 +16,8 @@ const roleRoutes = require('./routes/role');
 const connectionRoutes = require('./routes/connection');
 const messageRoutes = require('./routes/message');
 const expertsRoutes = require('./routes/experts');
+const videosdkRoutes = require('./routes/videosdk');
+const jobsRoutes = require('./routes/jobs');
 const fs = require('fs');
 const path = require('path');
 
@@ -40,6 +44,8 @@ app.use('/roles', roleRoutes);
 app.use('/connections', connectionRoutes);
 app.use('/messages', messageRoutes);
 app.use('/experts', expertsRoutes);
+app.use('/videosdk', videosdkRoutes);
+app.use('/jobs', jobsRoutes);
 
 app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Auth API running' });
@@ -111,6 +117,7 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     try {
       const { connectionId, content } = data;
+      console.log('📨 Received send_message event:', { connectionId, content, userId: socket.userId });
       
       // Import Message model
       const Message = require('./models/Message');
@@ -146,7 +153,7 @@ io.on('connection', (socket) => {
       await message.populate(['senderId', 'receiverId']);
       
       // Emit message to connection room
-      io.to(`connection_${connectionId}`).emit('new_message', {
+      const messageData = {
         _id: message._id,
         sender: {
           _id: message.senderId._id,
@@ -160,7 +167,11 @@ io.on('connection', (socket) => {
         timestamp: message.createdAt,
         read: message.isRead,
         connection: connectionId
-      });
+      };
+      
+      console.log('📤 Emitting new_message to room:', `connection_${connectionId}`);
+      console.log('📤 Message data:', messageData);
+      io.to(`connection_${connectionId}`).emit('new_message', messageData);
       
       // Send notification to receiver if they're not in the chat
       const receiverId = message.receiverId._id || message.receiverId;
@@ -217,15 +228,42 @@ io.on('connection', (socket) => {
 });
 
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
+  .then(async () => {
+    // Initialize Agenda after successful MongoDB connection
+    try {
+      const agenda = await initializeAgenda(MONGODB_URI);
+      defineClassJobs(agenda);
+      console.log('✅ Agenda jobs defined and ready');
+      
+      // Make agenda available globally for controllers
+      global.agenda = agenda;
+    } catch (err) {
+      console.error('⚠️  Warning: Failed to initialize Agenda, continuing without job scheduler:', err.message);
+    }
+
     server.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
       console.log('Socket.IO enabled for real-time chat');
+      console.log('Agenda job scheduler is running');
     });
   })
   .catch(err => {
     console.error('Failed to connect to MongoDB', err.message);
     process.exit(1);
   });
+
+// Graceful shutdown handler
+const gracefulShutdown = async () => {
+  console.log('\n⏹️  Shutting down gracefully...');
+  try {
+    await stopAgenda();
+  } catch (err) {
+    console.error('Error stopping Agenda:', err);
+  }
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 module.exports = { app, io };

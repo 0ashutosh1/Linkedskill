@@ -227,3 +227,114 @@ exports.getExpertProfiles = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// Upload profile photo to Cloudinary
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    console.log('📸 Upload profile photo request received');
+    
+    if (!req.file) {
+      console.log('❌ No file in request');
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('📁 File received:', req.file.originalname, 'Size:', req.file.size);
+
+    const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinaryHelper');
+    const userId = req.user.sub;
+
+    console.log('☁️ Uploading to Cloudinary...');
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer, 'profiles');
+    const photoUrl = result.secure_url;
+    console.log('✅ Cloudinary upload successful:', photoUrl);
+
+    // Update or create profile with the photo URL
+    let profile = await Profile.findOne({ userId });
+
+    if (profile) {
+      // Delete old photo from Cloudinary if exists
+      if (profile.photoUrl) {
+        try {
+          const oldPublicId = extractPublicId(profile.photoUrl);
+          if (oldPublicId) {
+            await deleteFromCloudinary(oldPublicId);
+          }
+        } catch (deleteError) {
+          console.error('Error deleting old photo:', deleteError);
+          // Continue even if deletion fails
+        }
+      }
+
+      profile.photoUrl = photoUrl;
+      await profile.save();
+    } else {
+      // Create new profile with photo
+      const user = await User.findById(userId);
+      profile = new Profile({
+        userId,
+        name: user?.name || '',
+        email: user?.email || '',
+        phoneNo: user?.phoneNo ? user.phoneNo.toString() : '',
+        photoUrl
+      });
+      await profile.save();
+    }
+
+    console.log('✅ Profile updated successfully');
+    res.json({
+      message: 'Profile photo uploaded successfully',
+      photoUrl,
+      profile
+    });
+  } catch (err) {
+    console.error('❌ Error uploading profile photo:', err);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
+// Remove profile photo
+exports.removeProfilePhoto = async (req, res) => {
+  try {
+    console.log('🗑️ Remove profile photo request received');
+    
+    const { deleteFromCloudinary, extractPublicId } = require('../utils/cloudinaryHelper');
+    const userId = req.user.sub;
+
+    const profile = await Profile.findOne({ userId });
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    if (!profile.photoUrl) {
+      return res.status(400).json({ error: 'No profile photo to remove' });
+    }
+
+    // Delete photo from Cloudinary
+    try {
+      const publicId = extractPublicId(profile.photoUrl);
+      if (publicId) {
+        await deleteFromCloudinary(publicId);
+        console.log('✅ Photo deleted from Cloudinary');
+      }
+    } catch (deleteError) {
+      console.error('Error deleting from Cloudinary:', deleteError);
+      // Continue even if deletion fails
+    }
+
+    // Remove photo URL from profile
+    profile.photoUrl = '';
+    await profile.save();
+
+    console.log('✅ Profile photo removed successfully');
+    res.json({
+      message: 'Profile photo removed successfully',
+      profile
+    });
+  } catch (err) {
+    console.error('❌ Error removing profile photo:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};

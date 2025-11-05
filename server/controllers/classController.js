@@ -2,6 +2,12 @@ const Class = require('../models/Class');
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Notification = require('../models/Notification');
+const { 
+  scheduleClassGoLive, 
+  scheduleClassReminder, 
+  scheduleClassEnd, 
+  cancelClassJobs 
+} = require('../lib/agendaHelpers');
 
 // Create a new class
 exports.createClass = async (req, res) => {
@@ -32,6 +38,16 @@ exports.createClass = async (req, res) => {
     });
 
     await newClass.save();
+    
+    // Schedule Agenda jobs for automatic lifecycle management
+    try {
+      await scheduleClassGoLive(newClass);
+      await scheduleClassReminder(newClass);
+      await scheduleClassEnd(newClass);
+    } catch (jobError) {
+      console.error('⚠️  Error scheduling class jobs:', jobError);
+      // Don't fail class creation if job scheduling fails
+    }
     
     // Send notifications to all student users
     try {
@@ -133,11 +149,57 @@ exports.getClassesByUser = async (req, res) => {
   }
 };
 
+// Get classes where user is registered as attendee
+exports.getRegisteredClasses = async (req, res) => {
+  try {
+    const userId = req.user.sub; // Get from authenticated user
+    
+    const classes = await Class.find({ 
+      attendees: userId // Find classes where user is in attendees array
+    })
+      .populate('userId', 'name email')
+      .populate('attendees', 'name email')
+      .populate('categoryId', 'name description')
+      .populate('subCategoryId', 'name description')
+      .sort({ date: -1 });
+    
+    res.json({ classes });
+  } catch (err) {
+    console.error('Error fetching registered classes:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Get all classes related to user (both created and registered)
+exports.getMyClasses = async (req, res) => {
+  try {
+    const userId = req.user.sub; // Get from authenticated user
+    
+    // Find classes created by user OR where user is attendee
+    const classes = await Class.find({
+      $or: [
+        { userId: userId }, // Classes created by user
+        { attendees: userId } // Classes user is registered for
+      ]
+    })
+      .populate('userId', 'name email')
+      .populate('attendees', 'name email')
+      .populate('categoryId', 'name description')
+      .populate('subCategoryId', 'name description')
+      .sort({ date: -1 });
+    
+    res.json({ classes });
+  } catch (err) {
+    console.error('Error fetching my classes:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // Update a class
 exports.updateClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, date, image, categoryId, subCategoryId } = req.body;
+    const { title, description, date, image, categoryId, subCategoryId, meetingId, status, liveUrl } = req.body;
     
     const classData = await Class.findById(id);
     
@@ -157,6 +219,11 @@ exports.updateClass = async (req, res) => {
     if (image !== undefined) classData.image = image;
     if (categoryId !== undefined) classData.categoryId = categoryId;
     if (subCategoryId !== undefined) classData.subCategoryId = subCategoryId;
+    if (meetingId !== undefined) classData.meetingId = meetingId;
+    if (status !== undefined) classData.status = status;
+    if (liveUrl !== undefined) classData.liveUrl = liveUrl;
+    
+    console.log('✅ Updated class with:', { meetingId, status, liveUrl });
     
     await classData.save();
     res.json({ 
@@ -183,6 +250,13 @@ exports.deleteClass = async (req, res) => {
     // Check if the user is the owner of the class
     if (classData.userId.toString() !== req.user.sub) {
       return res.status(403).json({ error: 'Not authorized to delete this class' });
+    }
+    
+    // Cancel all scheduled jobs for this class
+    try {
+      await cancelClassJobs(id);
+    } catch (jobError) {
+      console.error('⚠️  Error cancelling class jobs:', jobError);
     }
     
     await Class.findByIdAndDelete(id);
@@ -286,7 +360,7 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-// Start a class (only for class owner)
+// Start a class (only for class owner - provides manual override)
 exports.startClass = async (req, res) => {
   try {
     const { id } = req.params;
@@ -307,18 +381,6 @@ exports.startClass = async (req, res) => {
     // Check if class is scheduled
     if (classData.status !== 'scheduled') {
       return res.status(400).json({ error: 'Class cannot be started. Current status: ' + classData.status });
-    }
-    
-    // Check if current time is within 10 minutes before start time
-    const now = new Date();
-    const startTime = new Date(classData.startTime);
-    const tenMinutesBefore = new Date(startTime.getTime() - 10 * 60 * 1000);
-    
-    if (now < tenMinutesBefore) {
-      const timeUntilStart = Math.ceil((tenMinutesBefore - now) / (1000 * 60));
-      return res.status(400).json({ 
-        error: `Class can only be started ${timeUntilStart} minutes before the scheduled time` 
-      });
     }
     
     // Update class status to live
@@ -390,5 +452,58 @@ exports.endClass = async (req, res) => {
   } catch (err) {
     console.error('Error ending class:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Upload class thumbnail to Cloudinary
+exports.uploadThumbnail = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinaryHelper');
+    const { id } = req.params;
+    const userId = req.user.sub;
+
+    const classData = await Class.findById(id);
+
+    if (!classData) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Check if user is the owner of the class
+    if (classData.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'Only the class instructor can update the thumbnail' });
+    }
+
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer, 'thumbnails');
+    const thumbnailUrl = result.secure_url;
+
+    // Delete old thumbnail from Cloudinary if exists
+    if (classData.image) {
+      try {
+        const oldPublicId = extractPublicId(classData.image);
+        if (oldPublicId) {
+          await deleteFromCloudinary(oldPublicId);
+        }
+      } catch (deleteError) {
+        console.error('Error deleting old thumbnail:', deleteError);
+        // Continue even if deletion fails
+      }
+    }
+
+    classData.image = thumbnailUrl;
+    await classData.save();
+
+    res.json({
+      message: 'Class thumbnail uploaded successfully',
+      thumbnailUrl,
+      class: classData
+    });
+  } catch (err) {
+    console.error('Error uploading thumbnail:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 };

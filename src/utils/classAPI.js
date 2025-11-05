@@ -111,5 +111,62 @@ export const classAPI = {
     }
 
     return response.json()
+  },
+
+  // Get classes by category name
+  getClassesByCategory: async (categoryName) => {
+    try {
+      // First get the category ID by name
+      const categoriesResponse = await fetch(`${API_URL}/categories`)
+      if (!categoriesResponse.ok) {
+        throw new Error('Failed to fetch categories')
+      }
+      const categoriesData = await categoriesResponse.json()
+      
+      // Find the category by name (case insensitive)
+      const category = categoriesData.categories?.find(
+        cat => cat.name.toLowerCase() === categoryName.toLowerCase()
+      )
+      
+      if (!category) {
+        console.warn(`Category "${categoryName}" not found`)
+        return { classes: [] }
+      }
+
+      // Now get classes for this category
+      const response = await fetch(`${API_URL}/classes?categoryId=${category._id}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch classes for category ${categoryName}`)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error(`Error fetching classes for category ${categoryName}:`, error)
+      return { classes: [] }
+    }
+  },
+
+  // Transform backend class data to frontend format
+  transformClassData: (backendClass, categoryName = '') => {
+    return {
+      title: backendClass.title,
+      tag: categoryName || backendClass.categoryId?.name || 'General',
+      author: backendClass.userId?.name || 'Expert Instructor',
+      date: new Date(backendClass.startTime || backendClass.date).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }),
+      time: backendClass.duration ? `${backendClass.duration}min` : '2h 30m',
+      startTime: backendClass.startTime || backendClass.date,
+      status: backendClass.status || 'scheduled',
+      classId: backendClass._id,
+      description: backendClass.description || 'Join this exciting learning opportunity.',
+      learners: backendClass.attendees?.length?.toString() || backendClass.interestedCount?.toString() || '0',
+      level: backendClass.level || 'Intermediate',
+      image: backendClass.image || '',
+      attendees: backendClass.attendees || []
+    }
   }
 }
