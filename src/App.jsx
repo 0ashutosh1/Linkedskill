@@ -8,6 +8,7 @@ import LoginPage from './components/LoginPage'
 import SignupPage from './components/SignupPage'
 import AllClassesPage from './components/AllClassesPage'
 import LiveClassPage from './components/LiveClassPage'
+import LandingPage from './components/LandingPage'
 
 import Sidebar from './components/Sidebar'
 import RightPanel from './components/RightPanel'
@@ -23,7 +24,7 @@ import logo from './assets/LinkedSkill.jpg'
 
 export default function App() {
   const [appLoading, setAppLoading] = useState(true)
-  const [route, setRoute] = useState('home')
+  const [route, setRoute] = useState('landing')
   const [selectedProfile, setSelectedProfile] = useState(null)
   const [currentCourse, setCurrentCourse] = useState(null)
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false)
@@ -182,6 +183,7 @@ export default function App() {
       
       // Fetch connected experts and classes if authenticated
       if (authenticated) {
+        setRoute('home') // Set route to home if user is already logged in
         fetchConnectedExperts()
         fetchUpcomingClasses()
         fetchClassesByCategories()
@@ -500,6 +502,20 @@ export default function App() {
         `}</style>
       </div>
     )
+  }
+
+  // Show landing page first if not authenticated and no auth page selected
+  if (!isAuthenticated && route === 'landing') {
+    return <LandingPage 
+      onGetStarted={() => {
+        setAuthPage('signup')
+        setRoute('auth')
+      }} 
+      onLogin={() => {
+        setAuthPage('login')
+        setRoute('auth')
+      }} 
+    />
   }
 
   // Show login/signup pages if not authenticated
