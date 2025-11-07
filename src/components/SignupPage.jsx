@@ -85,6 +85,10 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
       localStorage.setItem('authToken', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       
+      // IMPORTANT: Remove onboarding flag for new users
+      localStorage.removeItem('onboardingComplete')
+      console.log('New signup - removed onboardingComplete flag')
+      
       // Trigger onboarding flow
       if (onSignup) {
         onSignup(data)

@@ -224,25 +224,33 @@ export default function App() {
   }
 
   function handleSignup(data) {
-    console.log('Signup successful:', data)
-    console.log('Setting authenticated and checking onboarding...')
+    console.log('✅ Signup successful:', data)
+    console.log('🔍 Checking onboarding status...')
     
-    // Check if onboarding is needed
+    // IMPORTANT: Clear any existing onboarding flag for new signups
+    localStorage.removeItem('onboardingComplete')
+    
+    // Check if onboarding is needed (should always be needed for new signups)
     const onboardingComplete = localStorage.getItem('onboardingComplete')
-    console.log('Onboarding complete status:', onboardingComplete)
+    console.log('📋 Onboarding complete status:', onboardingComplete)
     
     if (!onboardingComplete) {
-      console.log('Showing onboarding page...')
+      console.log('🎯 NEW USER - Showing onboarding page...')
+      // Set authentication first, then show onboarding
       setIsAuthenticated(true)
-      setShowOnboarding(true)
+      // Use setTimeout to ensure state updates properly
+      setTimeout(() => {
+        setShowOnboarding(true)
+        console.log('✨ showOnboarding state set to TRUE')
+      }, 0)
     } else {
-      console.log('Skipping onboarding, going to home...')
+      console.log('⚠️ Onboarding already complete - going to home...')
       setIsAuthenticated(true)
       setRoute('home')
-      fetchConnectedExperts() // Fetch connections after signup
-      fetchUpcomingClasses() // Fetch classes after signup
-      fetchClassesByCategories() // Fetch category classes after signup
-      fetchUserProfile() // Fetch profile photo after signup
+      fetchConnectedExperts()
+      fetchUpcomingClasses()
+      fetchClassesByCategories()
+      fetchUserProfile()
     }
   }
 
@@ -557,20 +565,20 @@ export default function App() {
 
   // Show onboarding if user just signed up and hasn't completed onboarding
   if (isAuthenticated && showOnboarding) {
-    console.log('Rendering OnboardingPage...')
+    console.log('🎨 Rendering OnboardingPage... (isAuthenticated:', isAuthenticated, 'showOnboarding:', showOnboarding, ')')
     return <OnboardingPage onComplete={handleOnboardingComplete} />
   }
 
   // Show login/signup pages if not authenticated
   if (!isAuthenticated) {
-    console.log('User not authenticated, showing auth page:', authPage);
+    console.log('🔐 User not authenticated, showing auth page:', authPage);
     if (authPage === 'login') {
       return <LoginPage onLogin={handleLogin} onSwitchToSignup={() => setAuthPage('signup')} />
     }
     return <SignupPage onSignup={handleSignup} onSwitchToLogin={() => setAuthPage('login')} />
   }
 
-  console.log('User authenticated, rendering main app with route:', route);
+  console.log('🏠 User authenticated, rendering main app with route:', route, '(showOnboarding:', showOnboarding, ')');
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-800 via-slate-900 to-gray-900 text-white">
