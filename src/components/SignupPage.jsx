@@ -81,15 +81,14 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
         throw new Error(data.error || 'Signup failed')
       }
 
-      // Don't store token - user needs to login
-      setSuccessMessage('Account created successfully! Redirecting to login...')
+      // Store token and user data
+      localStorage.setItem('authToken', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
       
-      // Redirect to login page after short delay
-      setTimeout(() => {
-        if (onSwitchToLogin) {
-          onSwitchToLogin()
-        }
-      }, 2000)
+      // Trigger onboarding flow
+      if (onSignup) {
+        onSignup(data)
+      }
 
     } catch (error) {
       setErrors({ api: error.message })

@@ -6,6 +6,7 @@ import NotificationsPage from './components/NotificationsPage'
 import AddClassModal from './components/AddClassModal'
 import LoginPage from './components/LoginPage'
 import SignupPage from './components/SignupPage'
+import OnboardingPage from './components/OnboardingPage'
 import AllClassesPage from './components/AllClassesPage'
 import LiveClassPage from './components/LiveClassPage'
 import LandingPage from './components/LandingPage'
@@ -30,6 +31,7 @@ export default function App() {
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authPage, setAuthPage] = useState('login') // 'login' or 'signup'
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryClasses, setCategoryClasses] = useState([])
@@ -211,12 +213,29 @@ export default function App() {
   }
 
   function handleSignup(data) {
+    console.log('Signup successful:', data)
     setIsAuthenticated(true)
+    // Check if onboarding is needed
+    const onboardingComplete = localStorage.getItem('onboardingComplete')
+    if (!onboardingComplete) {
+      setShowOnboarding(true)
+    } else {
+      setRoute('home')
+      fetchConnectedExperts() // Fetch connections after signup
+      fetchUpcomingClasses() // Fetch classes after signup
+      fetchClassesByCategories() // Fetch category classes after signup
+      fetchUserProfile() // Fetch profile photo after signup
+    }
+  }
+
+  function handleOnboardingComplete() {
+    console.log('Onboarding complete')
+    setShowOnboarding(false)
     setRoute('home')
-    fetchConnectedExperts() // Fetch connections after signup
-    fetchUpcomingClasses() // Fetch classes after signup
-    fetchClassesByCategories() // Fetch category classes after signup
-    fetchUserProfile() // Fetch profile photo after signup
+    fetchConnectedExperts() // Fetch connections after onboarding
+    fetchUpcomingClasses() // Fetch classes after onboarding
+    fetchClassesByCategories() // Fetch category classes after onboarding
+    fetchUserProfile() // Fetch profile photo after onboarding
   }
 
   function handleLogout() {
@@ -516,6 +535,11 @@ export default function App() {
         setRoute('auth')
       }} 
     />
+  }
+
+  // Show onboarding if user just signed up and hasn't completed onboarding
+  if (isAuthenticated && showOnboarding) {
+    return <OnboardingPage onComplete={handleOnboardingComplete} />
   }
 
   // Show login/signup pages if not authenticated
