@@ -37,7 +37,7 @@ export default function RightPanel({
   return (
     <div className="space-y-2 sm:space-y-3 h-full flex flex-col">
       {/* Enhanced responsive profile section */}
-      <div className="bg-slate-800/50 lg:bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-xl lg:shadow-none flex-shrink-0">
+      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg lg:shadow-md flex-shrink-0">
         <h3 className="text-sm font-semibold mb-2 text-gray-200 lg:text-gray-100">Your Profile</h3>
 
         <div className="flex flex-col items-center">
@@ -48,7 +48,7 @@ export default function RightPanel({
                aria-label="Open profile"
                tabIndex={0}
                onKeyDown={(e) => e.key === 'Enter' && onProfileClick()}>
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-700/50 border border-slate-600/50 flex items-center justify-center 
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-indigo-600/30 to-purple-600/30 border-2 border-indigo-500/30 flex items-center justify-center 
                            group-hover:scale-105 transition-all duration-300 shadow-lg group-hover:shadow-xl group-hover:shadow-blue-500/20 overflow-hidden">
               {userPhotoUrl ? (
                 <img 
@@ -78,8 +78,8 @@ export default function RightPanel({
           <div className="flex items-center justify-center">
             <button 
               onClick={onNotificationsClick}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-slate-600/50 bg-slate-700/30
-                         flex items-center justify-center text-gray-400 hover:bg-blue-500/20 hover:text-blue-400 
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-violet-500/30 bg-violet-500/10
+                         flex items-center justify-center text-violet-400 hover:bg-violet-500/20 hover:text-violet-300 
                          hover:border-blue-400/50 transition-all duration-300 hover:scale-110 active:scale-95 
                          shadow-sm hover:shadow-lg hover:shadow-blue-500/20"
               title="View notifications"
@@ -95,7 +95,7 @@ export default function RightPanel({
       </div>
 
       {/* Connected Experts/Students Section - Enhanced container */}
-      <div className="bg-slate-800/50 lg:bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl sm:rounded-2xl lg:rounded-none shadow-xl lg:shadow-none flex-1 min-h-0">
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-violet-500/20 rounded-xl sm:rounded-2xl lg:rounded-none shadow-2xl shadow-purple-500/10 lg:shadow-none flex-1 min-h-0">
         {isExpert ? (
           <ConnectedStudents 
             loading={connectionsLoading}

@@ -140,7 +140,7 @@ export default function CategorySection({ onCategoryClick, selectedCategory, onC
           <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-gray-200">
             Explore Categories
           </h3>
-          <div className="w-16 h-4 bg-slate-600/50 rounded animate-pulse"></div>
+          <div className="w-16 h-4 bg-violet-500/30 rounded animate-pulse"></div>
         </div>
         
         {/* Enhanced loading state */}
@@ -149,9 +149,9 @@ export default function CategorySection({ onCategoryClick, selectedCategory, onC
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 min-w-fit">
               <div className="w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 
-                             rounded-full bg-slate-600/50 animate-pulse 
+                             rounded-full bg-violet-500/30 animate-pulse 
                              shadow-sm"></div>
-              <div className="w-12 xs:w-14 sm:w-16 h-2.5 sm:h-3 bg-slate-600/50 rounded animate-pulse"></div>
+              <div className="w-12 xs:w-14 sm:w-16 h-2.5 sm:h-3 bg-violet-500/30 rounded animate-pulse"></div>
             </div>
           ))}
         </div>
@@ -240,7 +240,7 @@ export default function CategorySection({ onCategoryClick, selectedCategory, onC
             Explore Categories
           </h3>
           {selectedCategory && (
-            <span className="text-xs sm:text-sm px-2 py-1 bg-blue-900/30 border border-blue-700/50 text-blue-300 
+            <span className="text-xs sm:text-sm px-2 py-1 bg-violet-500/20 border border-violet-500/30 text-violet-300 
                            rounded-full font-medium">
               {selectedCategory.name} selected
             </span>
@@ -272,7 +272,7 @@ export default function CategorySection({ onCategoryClick, selectedCategory, onC
               onClick={() => setShowAll(!showAll)}
               className="text-xs sm:text-sm font-semibold text-blue-400 
                          hover:text-blue-300 active:text-blue-200
-                         px-2 sm:px-3 py-1 rounded-lg hover:bg-blue-900/30 
+                         px-2 sm:px-3 py-1 rounded-lg hover:bg-violet-500/10 
                          transition-all duration-300 touch-manipulation
                          flex items-center gap-1"
             >
@@ -306,24 +306,20 @@ export default function CategorySection({ onCategoryClick, selectedCategory, onC
               key={category._id}
               onClick={() => onCategoryClick && onCategoryClick(category)}
               style={{ animationDelay: `${index * 50}ms` }}
-              className={`flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer 
-                         group min-w-fit touch-manipulation animate-fadeInUp
-                         rounded-lg p-1 sm:p-2 transition-all duration-300
-                         ${isSelected 
-                           ? 'bg-purple-100 shadow-md ring-2 ring-purple-300' 
-                           : 'hover:bg-purple-50/50'}`}
+              className="flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer 
+                         group min-w-fit touch-manipulation animate-fadeInUp"
             >
-              {/* Enhanced responsive category icon */}
-              <div className={`w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18
+              {/* Enhanced responsive category icon - SMALLER SIZE */}
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12
                               rounded-full bg-gradient-to-br ${color} 
                               flex items-center justify-center text-white 
-                              shadow-md hover:shadow-lg hover:shadow-purple-500/25
+                              shadow-md hover:shadow-lg hover:shadow-indigo-500/10
                               transition-all duration-300 
-                              group-hover:scale-110 group-hover:-translate-y-1
+                              group-hover:scale-105
                               group-active:scale-95 
-                              ring-2 ring-transparent group-hover:ring-white/30
-                              ${isSelected ? 'scale-110 -translate-y-1 ring-white/50' : ''}`}>
-                <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 
+                              ring-2 ring-transparent group-hover:ring-white/20
+                              ${isSelected ? 'scale-105 ring-white/30 ring-indigo-400' : ''}`}>
+                <div className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6
                                transition-transform duration-300 group-hover:scale-110">
                   {icon}
                 </div>
@@ -336,14 +332,10 @@ export default function CategorySection({ onCategoryClick, selectedCategory, onC
                                max-w-[4rem] xs:max-w-[5rem] sm:max-w-[6rem] 
                                truncate px-1
                                ${isSelected 
-                                 ? 'text-purple-700 font-semibold' 
-                                 : 'text-gray-700 group-hover:text-purple-600 group-active:text-purple-700'}`}>
+                                 ? 'text-indigo-400 font-semibold' 
+                                 : 'text-gray-300 group-hover:text-indigo-400 group-active:text-indigo-300'}`}>
                 {category.name}
               </span>
-              
-              {/* Hover effect indicator */}
-              <div className={`h-0.5 bg-purple-600 rounded-full transition-all duration-300
-                              ${isSelected ? 'w-8' : 'w-0 group-hover:w-8'}`}></div>
             </div>
           );
         })}

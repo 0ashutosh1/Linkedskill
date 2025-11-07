@@ -581,7 +581,22 @@ export default function App() {
   console.log('🏠 User authenticated, rendering main app with route:', route, '(showOnboarding:', showOnboarding, ')');
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-800 via-slate-900 to-gray-900 text-white">
+    <div className="min-h-screen w-full bg-[#0a0a0f] text-white relative overflow-hidden">
+      {/* Animated gradient mesh background - matching landing page */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/20 to-cyan-600/20"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-500/30 rounded-full blur-[120px] animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
+      
+      {/* Glassmorphic grid overlay */}
+      <div className="fixed inset-0 z-0 opacity-10" style={{
+        backgroundImage: 'linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }}></div>
+      
+      <div className="relative z-10">
       <AddClassModal 
         isOpen={isAddClassModalOpen} 
         onClose={() => setIsAddClassModalOpen(false)}
@@ -601,23 +616,24 @@ export default function App() {
         connectionId={selectedChatExpert?.connectionId}
       />
       
-      {/* Mobile Header - Enhanced responsive design */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-800/95 backdrop-blur-sm shadow-lg z-40 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between border-b border-gray-700">
+      {/* Mobile Header - Enhanced responsive design with landing page colors */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-xl shadow-2xl z-40 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between border-b border-purple-500/20">
         <div className="flex items-center gap-2 sm:gap-3">
-          <img 
-            src={logo} 
-            alt="LinkedSkill Logo" 
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover cursor-pointer" 
-            onClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
-          />
-          <div className="text-base sm:text-lg font-semibold text-blue-600">LinkedSkill</div>
+          <div className="relative w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50">
+            <span className="text-white font-bold text-sm sm:text-base cursor-pointer"
+              onClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }}>
+              LS
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl blur-md opacity-50 -z-10"></div>
+          </div>
+          <div className="text-base sm:text-lg font-semibold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">LinkedSkill</div>
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 transition-colors"
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMobileMenuOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
             ) : (
@@ -628,12 +644,12 @@ export default function App() {
       </div>
 
       {/* Main Layout Container - Full width layout */}
-      <div className="h-screen bg-slate-800/50 backdrop-blur-sm overflow-hidden flex flex-col">
+      <div className="h-screen bg-slate-900/30 backdrop-blur-sm overflow-hidden flex flex-col">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0">
-          {/* Sidebar - Fixed position, no scroll except mobile */}
+          {/* Sidebar - Fixed position with glassmorphism */}
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:col-span-2 
-            bg-slate-800/70 backdrop-blur-sm border-r lg:border-r-gray-700
+            bg-slate-900/90 backdrop-blur-xl border-r border-slate-700/50
             transform transition-transform duration-300 ease-in-out lg:transform-none
             ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             pt-14 sm:pt-16 lg:pt-0 lg:h-full flex flex-col
@@ -649,10 +665,10 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Overlay for mobile menu - Improved interaction */}
+          {/* Overlay for mobile menu */}
           {isMobileMenuOpen && (
             <div 
-              className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
               onTouchStart={() => setIsMobileMenuOpen(false)}
             />
@@ -667,24 +683,23 @@ export default function App() {
             lg:overflow-y-auto lg:overflow-x-hidden
             min-h-screen lg:min-h-0 lg:h-full
           `}>
-            {/* Enhanced responsive header */}
+            {/* Enhanced responsive header with gradient */}
             {route !== 'experts' && (
               <header className="mb-4 sm:mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                 <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 w-full sm:w-auto">
-                  <img 
-                    src={logo} 
-                    alt="LinkedSkill Logo" 
-                    className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover cursor-pointer hidden lg:block" 
-                    onClick={() => { setRoute('home'); setSelectedProfile(null); }} 
-                  />
+                  <div className="relative w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md cursor-pointer hidden lg:flex"
+                    onClick={() => { setRoute('home'); setSelectedProfile(null); }}>
+                    <span className="text-white font-bold text-lg md:text-xl">LS</span>
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl blur-sm opacity-30 -z-10"></div>
+                  </div>
                   <div className="relative w-full sm:max-w-md lg:max-w-lg">
                     <input 
                       placeholder="Search your course here..." 
                       className="w-full border border-slate-600/50 rounded-full pl-4 pr-10 py-2 sm:py-2.5 text-sm sm:text-base 
-                                focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
-                                bg-slate-700/50 text-gray-200 placeholder-gray-400 shadow-lg hover:shadow-xl transition-shadow" 
+                                focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50
+                                bg-slate-800/80 backdrop-blur-sm text-gray-200 placeholder-gray-500 shadow-sm hover:shadow-md transition-shadow" 
                     />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors">
                       <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                       </svg>
@@ -696,24 +711,27 @@ export default function App() {
 
             {route === 'home' ? (
               <>
-                {/* Enhanced responsive hero section */}
+                {/* Enhanced responsive hero section with gradient */}
                 <section className="mb-4 sm:mb-6 lg:mb-8">
-                  <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 text-white rounded-xl sm:rounded-2xl 
+                  <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white rounded-xl sm:rounded-2xl 
                                   p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6 lg:gap-8
-                                  shadow-lg hover:shadow-xl transition-shadow duration-300">
-                    <div className="flex-1 text-center lg:text-left">
+                                  shadow-lg hover:shadow-xl transition-shadow duration-300 relative overflow-hidden border border-indigo-500/20">
+                    {/* Subtle overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-900/20 via-slate-800/20 to-slate-900/20 blur-xl -z-10"></div>
+                    
+                    <div className="flex-1 text-center lg:text-left relative z-10">
                       <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-2">Online Course</div>
                       <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight mb-3 sm:mb-4">
                         Sharpen Your Skills With Professional Online Courses
                       </h2>
-                      <button className="bg-slate-800 border border-slate-600/50 text-blue-400 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-semibold 
-                                       text-sm sm:text-base hover:bg-slate-700 transform hover:scale-105 transition-all duration-200
-                                       shadow-lg hover:shadow-xl">
+                      <button className="bg-white/15 backdrop-blur-sm border border-white/25 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-medium 
+                                       text-sm sm:text-base hover:bg-white/25 transform hover:scale-105 transition-all duration-200
+                                       shadow-md hover:shadow-lg">
                         Join Now
                       </button>
                     </div>
-                    <div className="w-full max-w-[200px] h-20 sm:h-24 lg:w-48 lg:h-28 bg-slate-800/30 rounded-lg sm:rounded-xl flex-shrink-0
-                                    backdrop-blur-sm border border-slate-600/50" />
+                    <div className="w-full max-w-[200px] h-20 sm:h-24 lg:w-48 lg:h-28 bg-white/8 backdrop-blur-sm rounded-lg sm:rounded-xl flex-shrink-0
+                                    border border-white/15" />
                   </div>
                 </section>
 
@@ -920,12 +938,12 @@ export default function App() {
             ) : null }
           </main>
 
-          {/* Fixed responsive right panel */}
+          {/* Fixed responsive right panel with glassmorphism */}
           {route === 'home' && (
-            <aside className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-700/50 bg-slate-800/30
+            <aside className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-700/50 bg-slate-900/60 backdrop-blur-xl
                              px-3 sm:px-4 lg:px-4 py-3 sm:py-4 lg:py-4
                              order-first lg:order-last
-                             lg:h-full lg:flex lg:flex-col">
+                             lg:h-full lg:flex lg:flex-col shadow-lg">
               <div className="lg:flex-1 lg:h-full overflow-visible">
                 <RightPanel 
                   onProfileClick={() => { setSelectedProfile({ id: 'me', name: 'Alex Morgan', role: 'Software Developer' }); setRoute('profile'); }} 
@@ -947,6 +965,7 @@ export default function App() {
             </aside>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

@@ -202,29 +202,15 @@ export default function ConnectedStudents({
         <div className="flex items-center bg-slate-700/30 rounded-lg p-0.5">
           <button
             onClick={() => setActiveTab('students')}
-            className={`text-xs px-2 py-1 rounded-md transition-all duration-200 ${
-              activeTab === 'students' 
-                ? 'bg-blue-500 text-white' 
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className="text-xs px-2 py-1 rounded-md bg-blue-500 text-white"
           >
             {isExpert ? 'Students' : 'Connected'}
-          </button>
-          <button
-            onClick={() => setActiveTab('classes')}
-            className={`text-xs px-2 py-1 rounded-md transition-all duration-200 ${
-              activeTab === 'classes' 
-                ? 'bg-blue-500 text-white' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Classes
           </button>
         </div>
         
         {/* Counter Badge */}
         <span className="text-xs text-white bg-slate-700/50 border border-slate-600/50 px-2 py-0.5 rounded-full">
-          {activeTab === 'students' ? students.length : upcomingClasses.length}
+          {students.length}
         </span>
       </div>
       

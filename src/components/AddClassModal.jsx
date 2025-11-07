@@ -194,7 +194,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
         </button>
 
         <div className="mb-5 md:mb-6">
-          <div className="inline-block bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold mb-3 md:mb-4">
+          <div className="inline-block bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-indigo-500/20 text-gray-100 px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-semibold mb-3 md:mb-4">
             New Class
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-100">Add a New Class</h2>
@@ -213,7 +213,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Introduction to React Hooks"
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300"
             />
           </div>
 
@@ -228,7 +228,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe what students will learn in this class..."
               rows="4"
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300 resize-none"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300 resize-none"
             />
           </div>
 
@@ -243,7 +243,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
                 required
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300"
               />
             </div>
 
@@ -256,7 +256,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
                 required
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300"
               />
             </div>
 
@@ -267,7 +267,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               <select
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300"
               >
                 <option value={30}>30 minutes</option>
                 <option value={45}>45 minutes</option>
@@ -288,7 +288,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               value={formData.categoryId}
               onChange={handleCategoryChange}
               disabled={loading}
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
             >
               <option value="">Select a category (optional)</option>
               {categories.map((cat) => (
@@ -309,7 +309,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               disabled={!formData.categoryId}
               value={formData.subCategoryId}
               onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
-              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
             >
               <option value="">Select a subcategory (optional)</option>
               {subcategories.map((subcat) => (
@@ -357,7 +357,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-3 md:pt-4">
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
+              className="flex-1 bg-gradient-to-r from-slate-700 to-indigo-700 border border-indigo-500/30 text-gray-100 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300 hover:scale-105"
             >
               Submit Class
             </button>

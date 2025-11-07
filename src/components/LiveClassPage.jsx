@@ -162,7 +162,7 @@ function ChatPanel({ isOpen, onClose, messages, onSendMessage, localParticipantN
 
   return (
     <div className="fixed right-6 bottom-6 w-96 h-[600px] bg-white rounded-xl shadow-2xl flex flex-col z-50">
-      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 flex justify-between items-center">
+      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white p-4 flex justify-between items-center border border-indigo-500/20">
         <h3 className="text-lg font-bold">💬 Live Chat</h3>
         <button onClick={onClose} className="bg-white/20 hover:bg-white/30 rounded-lg px-3 py-1">×</button>
       </div>
@@ -177,10 +177,10 @@ function ChatPanel({ isOpen, onClose, messages, onSendMessage, localParticipantN
             const isMyMessage = msg.senderId === localParticipantId;
             return (
               <div key={idx} className={`mb-4 p-3 rounded-lg shadow-sm ${
-                isMyMessage ? "bg-blue-100 border-l-4 border-blue-500" : "bg-gray-100 border-l-4 border-gray-500"
+                isMyMessage ? "bg-indigo-50 border-l-4 border-indigo-500" : "bg-gray-100 border-l-4 border-gray-500"
               }`}>
                 <div className={`text-sm font-bold mb-1 ${
-                  isMyMessage ? "text-blue-700" : "text-gray-900"
+                  isMyMessage ? "text-indigo-700" : "text-gray-900"
                 }`}>
                   {isMyMessage ? "You" : msg.senderName || "Guest"}
                 </div>
