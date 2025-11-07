@@ -164,7 +164,7 @@ export default function OnboardingPage({ onComplete }) {
         areasOfInterest: allInterests
       }
 
-      const response = await fetch(`${API_URL}/profile/me`, {
+      const response = await fetch(`${API_URL}/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

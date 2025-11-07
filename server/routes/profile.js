@@ -21,6 +21,7 @@ router.put('/', profileController.createOrUpdateProfile);
 router.get('/me', profileController.getMyProfile);
 
 // Check if profile is completed
+router.get('/completion', profileController.checkProfileCompletion);
 router.get('/check-completion', profileController.checkProfileCompletion);
 
 // Get all profiles (for search/admin)
