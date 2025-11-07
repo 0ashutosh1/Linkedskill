@@ -185,11 +185,22 @@ export default function App() {
       
       // Fetch connected experts and classes if authenticated
       if (authenticated) {
-        setRoute('home') // Set route to home if user is already logged in
-        fetchConnectedExperts()
-        fetchUpcomingClasses()
-        fetchClassesByCategories()
-        fetchUserProfile()
+        // Check if onboarding was completed
+        const onboardingComplete = localStorage.getItem('onboardingComplete')
+        console.log('Initial load - onboarding complete:', onboardingComplete)
+        
+        if (!onboardingComplete) {
+          // User is authenticated but hasn't completed onboarding
+          console.log('User needs to complete onboarding')
+          setShowOnboarding(true)
+        } else {
+          // User has completed onboarding, go to home
+          setRoute('home')
+          fetchConnectedExperts()
+          fetchUpcomingClasses()
+          fetchClassesByCategories()
+          fetchUserProfile()
+        }
       }
       
       // App is ready to render
@@ -214,12 +225,19 @@ export default function App() {
 
   function handleSignup(data) {
     console.log('Signup successful:', data)
-    setIsAuthenticated(true)
+    console.log('Setting authenticated and checking onboarding...')
+    
     // Check if onboarding is needed
     const onboardingComplete = localStorage.getItem('onboardingComplete')
+    console.log('Onboarding complete status:', onboardingComplete)
+    
     if (!onboardingComplete) {
+      console.log('Showing onboarding page...')
+      setIsAuthenticated(true)
       setShowOnboarding(true)
     } else {
+      console.log('Skipping onboarding, going to home...')
+      setIsAuthenticated(true)
       setRoute('home')
       fetchConnectedExperts() // Fetch connections after signup
       fetchUpcomingClasses() // Fetch classes after signup
@@ -539,6 +557,7 @@ export default function App() {
 
   // Show onboarding if user just signed up and hasn't completed onboarding
   if (isAuthenticated && showOnboarding) {
+    console.log('Rendering OnboardingPage...')
     return <OnboardingPage onComplete={handleOnboardingComplete} />
   }
 
