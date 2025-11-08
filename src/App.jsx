@@ -214,12 +214,14 @@ export default function App() {
     }
   }, []) // Remove fetchConnectedExperts from dependencies to prevent infinite loop
 
-  // Refetch connections when returning to home/dashboard
+  // Refetch connections and classes when returning to home/dashboard
   useEffect(() => {
     if (isAuthenticated && route === 'home') {
       fetchConnectedExperts()
+      fetchUpcomingClasses()
+      fetchClassesByCategories()
     }
-  }, [route, isAuthenticated, fetchConnectedExperts])
+  }, [route, isAuthenticated, fetchConnectedExperts, fetchUpcomingClasses, fetchClassesByCategories])
 
   function handleLogin(userData) {
     // Update user role immediately after login
@@ -636,12 +638,15 @@ export default function App() {
         isOpen={isAddClassModalOpen} 
         onClose={() => setIsAddClassModalOpen(false)}
         onClassCreated={() => {
-          fetchUpcomingClasses()
-          fetchClassesByCategories() // Refresh all category classes
-          // Also refresh category classes if a category is selected
-          if (selectedCategory) {
-            handleCategoryClick(selectedCategory)
-          }
+          // Add a small delay to ensure backend has finished processing
+          setTimeout(() => {
+            fetchUpcomingClasses()
+            fetchClassesByCategories() // Refresh all category classes
+            // Also refresh category classes if a category is selected
+            if (selectedCategory) {
+              handleCategoryClick(selectedCategory)
+            }
+          }, 500) // 500ms delay
         }}
       />
       <ChatModal 

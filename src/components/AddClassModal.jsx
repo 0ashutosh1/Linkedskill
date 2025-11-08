@@ -193,12 +193,15 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
 
       alert('Class created successfully! 🎉')
       
-      // Call the onClassCreated callback to refresh data
-      if (onClassCreated) {
-        onClassCreated()
-      }
-      
+      // Close modal first
       onClose()
+      
+      // Then call the onClassCreated callback to refresh data (with slight delay)
+      if (onClassCreated) {
+        setTimeout(() => {
+          onClassCreated()
+        }, 100)
+      }
       
       // Reset form
       setFormData({
