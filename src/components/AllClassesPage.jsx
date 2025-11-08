@@ -155,6 +155,7 @@ export default function AllClassesPage({ categoryName, allClasses, onBack, onJoi
                   title={classItem.title}
                   tag={classItem.tag}
                   author={classItem.author}
+                  userId={classItem.userId}
                   date={classItem.date}
                   time={classItem.time}
                   startTime={classItem.startTime}

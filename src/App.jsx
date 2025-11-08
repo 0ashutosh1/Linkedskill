@@ -91,11 +91,22 @@ export default function App() {
       
       if (response.ok) {
         const data = await response.json()
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+        const currentUserId = currentUser.sub || currentUser._id || currentUser.id
+        
         // Filter for truly upcoming classes (future dates only)
+        // Exclude classes created by the current expert
         const now = new Date()
         const upcoming = data.classes?.filter(cls => {
           const classDate = new Date(cls.startTime || cls.date)
-          return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+          const isUpcoming = (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+          
+          // Check if current user is the class creator
+          const isCreator = cls.userId?._id?.toString() === currentUserId?.toString() || 
+                           cls.userId?.toString() === currentUserId?.toString()
+          
+          // Show only if it's upcoming AND user is not the creator
+          return isUpcoming && !isCreator
         }).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)) || []
         
         setUpcomingClasses(upcoming)
@@ -145,15 +156,24 @@ export default function App() {
       const categoriesData = await categoriesResponse.json()
       
       const now = new Date()
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const currentUserId = currentUser.sub || currentUser._id || currentUser.id
       
       // Then fetch classes for each category in parallel
       const categoryPromises = categoriesData.categories.map(async (category) => {
         const classesData = await classAPI.getClassesByCategory(category.name)
         
-        // Filter out past classes - only show upcoming/live classes
+        // Filter out past classes and classes created by current expert - only show upcoming/live classes
         const upcomingClasses = classesData.classes?.filter(cls => {
           const classDate = new Date(cls.startTime || cls.date)
-          return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+          const isUpcoming = (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+          
+          // Check if current user is the class creator
+          const isCreator = cls.userId?._id?.toString() === currentUserId?.toString() || 
+                           cls.userId?.toString() === currentUserId?.toString()
+          
+          // Show only if it's upcoming AND user is not the creator
+          return isUpcoming && !isCreator
         }) || []
         
         return {
@@ -363,11 +383,20 @@ export default function App() {
       const data = await response.json();
       
       const now = new Date();
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const currentUserId = currentUser.sub || currentUser._id || currentUser.id
       
-      // Filter out past classes - only show upcoming/live classes
+      // Filter out past classes and classes created by current expert - only show upcoming/live classes
       const upcomingClassesOnly = (data.classes || []).filter(cls => {
         const classDate = new Date(cls.startTime || cls.date);
-        return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now;
+        const isUpcoming = (cls.status === 'scheduled' || cls.status === 'live') && classDate > now;
+        
+        // Check if current user is the class creator
+        const isCreator = cls.userId?._id?.toString() === currentUserId?.toString() || 
+                         cls.userId?.toString() === currentUserId?.toString()
+        
+        // Show only if it's upcoming AND user is not the creator
+        return isUpcoming && !isCreator;
       });
       
       // Transform backend data to match frontend format
@@ -375,6 +404,7 @@ export default function App() {
         title: cls.title,
         tag: category.name,
         author: cls.userId?.name || 'Expert Instructor',
+        userId: cls.userId, // Include userId for ownership check
         date: new Date(cls.startTime || cls.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         time: cls.duration ? `${cls.duration}min` : '2h 30m',
         startTime: cls.startTime,
@@ -424,10 +454,24 @@ export default function App() {
   // Handle starting a class (for instructors)
   const handleStartClass = useCallback(async ({ classId, title, startTime }) => {
     try {
+      // Create meeting first
+      const meetingData = await createMeeting()
+      
+      // Update class with meetingId
+      const token = localStorage.getItem('authToken')
+      await fetch(`http://localhost:4000/classes/${classId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ meetingId: meetingData.meetingId })
+      })
+      
+      // Start the class
       const result = await classAPI.startClass(classId)
       
-      // Fetch the updated class data to get the full class object
-      const token = localStorage.getItem('authToken')
+      // Fetch the updated class data
       const response = await fetch(`http://localhost:4000/classes/${classId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -435,21 +479,23 @@ export default function App() {
       if (response.ok) {
         const data = await response.json()
         
-        // Make sure userId is set - use current user's ID as owner
+        // Auto-join expert to live class immediately
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
         const currentUserId = currentUser.sub || currentUser._id || currentUser.id
         
-        // Navigate to live class page
         setCurrentCourse({
           ...data.class,
           classId: data.class._id,
           title: data.class.title,
-          userId: data.class.userId || currentUserId
+          userId: data.class.userId || currentUserId,
+          meetingId: data.class.meetingId,
+          isHost: true // Mark as host for auto-join
         })
+        
+        // Navigate to live class page (expert auto-joins)
         setRoute('live-class')
       } else {
-        // Show success notification if we can't fetch updated data
-        alert(`Class "${title}" has been started successfully! Students will be notified.`)
+        alert(`Class "${title}" has been started successfully!`)
       }
       
       return result
@@ -460,30 +506,32 @@ export default function App() {
     }
   }, [])
 
-  // Handle joining a class (for students)
+  // Handle joining a class (for students and expert rejoin)
   const handleJoinClass = useCallback(async (classData) => {
     try {
       const token = localStorage.getItem('authToken')
       if (!token) {
-        alert('Please login to register for classes')
+        alert('Please login to join classes')
         return
       }
 
-      let { status, classId, title, meetingId } = classData
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const currentUserId = currentUser.sub || currentUser._id || currentUser.id
+      let { status, classId, title, meetingId, userId } = classData
       
-      // Fetch fresh class data to check if it has been started (has meetingId)
-      if (classId && !meetingId) {
+      // Check if current user is the class owner (expert)
+      const isOwner = userId?.toString() === currentUserId?.toString() || 
+                      userId?._id?.toString() === currentUserId?.toString()
+      
+      // Fetch fresh class data to check current status
+      if (classId) {
         try {
           const checkResponse = await fetch(`http://localhost:4000/classes/${classId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
           })
           
           if (checkResponse.ok) {
             const freshClassData = await checkResponse.json()
-            
-            // Update with fresh data
             if (freshClassData.class) {
               meetingId = freshClassData.class.meetingId
               status = freshClassData.class.status
@@ -495,18 +543,48 @@ export default function App() {
         }
       }
       
-      // If class has a meetingId or status is 'live', join the live class
-      if (status === 'live' || meetingId) {
-        // Class is currently live - navigate to live class page
-        setCurrentCourse(classData)
+      // If class is live and has meetingId, allow join/rejoin
+      if (status === 'live' && meetingId) {
+        // For students (non-owners), check if they are registered
+        if (!isOwner) {
+          const isRegistered = classData.attendees?.some(
+            attendee => attendee._id?.toString() === currentUserId?.toString() || 
+                       attendee?.toString() === currentUserId?.toString()
+          )
+          
+          if (!isRegistered) {
+            alert('You must register for this class before joining. Please register first.')
+            return
+          }
+          
+          // Track student join
+          try {
+            await fetch(`http://localhost:4000/classes/${classId}/track-join`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            })
+          } catch (trackError) {
+            console.warn('Could not track join:', trackError)
+          }
+        }
+        
+        // Navigate to live class page (works for both expert and registered students)
+        setCurrentCourse({
+          ...classData,
+          classId: classData._id || classId,
+          isHost: isOwner
+        })
         setRoute('live-class')
         return
-      } else if (status === 'scheduled' && classId) {
-        // Check if user is already registered for this class
+      } 
+      
+      // If not live yet, handle registration for students
+      if (status === 'scheduled' && classId && !isOwner) {
         const checkResponse = await fetch('http://localhost:4000/classes', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         })
 
         if (checkResponse.ok) {
@@ -518,12 +596,10 @@ export default function App() {
             return
           }
 
-          const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
           const isRegistered = targetClass.attendees?.some(
-            attendee => attendee._id === currentUser.sub || attendee === currentUser.sub
+            attendee => attendee._id === currentUserId || attendee === currentUserId
           )
 
-          // Determine the action and endpoint
           const action = isRegistered ? 'leave' : 'join'
           const method = isRegistered ? 'DELETE' : 'POST'
           
@@ -912,6 +988,7 @@ export default function App() {
               title: cls.title,
               tag: cls.categoryId?.name || 'General',
               author: cls.userId?.name || 'Expert Instructor',
+              userId: cls.userId, // Include userId for ownership check
               date: new Date(cls.startTime || cls.date).toLocaleDateString('en-US', { 
                 month: 'short', 
                 day: 'numeric', 

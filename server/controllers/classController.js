@@ -412,34 +412,42 @@ exports.startClass = async (req, res) => {
       return res.status(403).json({ error: 'Only the class instructor can start the class' });
     }
     
-    // Check if class is scheduled
-    if (classData.status !== 'scheduled') {
+    // Check if class is scheduled or allow restarting a live class
+    if (classData.status !== 'scheduled' && classData.status !== 'live') {
       return res.status(400).json({ error: 'Class cannot be started. Current status: ' + classData.status });
     }
     
-    // Update class status to live
+    // Update class status to live and record actual start time
+    const isFirstStart = !classData.actualStartTime; // Check if this is the first time starting
     classData.status = 'live';
+    if (isFirstStart) {
+      classData.actualStartTime = new Date(); // Record when class actually started
+    }
     if (liveUrl) {
       classData.liveUrl = liveUrl;
     }
     
     await classData.save();
     
-    // Send notifications to all attendees
-    try {
-      const notifications = classData.attendees.map(attendeeId => ({
-        type: 'class_started',
-        message: `🔴 LIVE NOW: "${classData.title}" has started! Join now.`,
-        senderId: userId,
-        receiverId: attendeeId,
-        priority: 'high'
-      }));
-      
-      if (notifications.length > 0) {
-        await Notification.insertMany(notifications);
+    // Send notifications to all attendees when class starts
+    if (isFirstStart) {
+      try {
+        if (classData.attendees && classData.attendees.length > 0) {
+          const notifications = classData.attendees.map(attendeeId => ({
+            type: 'class_started',
+            message: `🔴 LIVE NOW: "${classData.title}" has started! Hurry, join now!`,
+            senderId: userId,
+            receiverId: attendeeId,
+            priority: 'high',
+            createdAt: new Date()
+          }));
+          
+          await Notification.insertMany(notifications);
+          console.log(`📢 Sent class started notifications to ${notifications.length} students`);
+        }
+      } catch (notificationError) {
+        console.error('Error sending start notifications:', notificationError);
       }
-    } catch (notificationError) {
-      console.error('Error sending start notifications:', notificationError);
     }
     
     res.json({ 
@@ -474,14 +482,50 @@ exports.endClass = async (req, res) => {
       return res.status(400).json({ error: 'Class is not currently live' });
     }
     
-    // Update class status to completed
+    // Record analytics
     classData.status = 'completed';
+    classData.actualEndTime = new Date();
+    
+    // Calculate actual duration in minutes
+    if (classData.actualStartTime) {
+      const durationMs = classData.actualEndTime - classData.actualStartTime;
+      classData.actualDuration = Math.round(durationMs / 60000); // Convert to minutes
+    }
+    
+    // Set total students joined count
+    classData.totalStudentsJoined = classData.studentsJoined ? classData.studentsJoined.length : 0;
     
     await classData.save();
     
+    // Send class ended notifications to all attendees
+    try {
+      if (classData.attendees && classData.attendees.length > 0) {
+        const notifications = classData.attendees.map(attendeeId => ({
+          type: 'class_ended',
+          message: `✅ Class Ended: "${classData.title}" has been completed. Thank you for attending!`,
+          senderId: userId,
+          receiverId: attendeeId,
+          priority: 'normal',
+          createdAt: new Date()
+        }));
+        
+        await Notification.insertMany(notifications);
+        console.log(`📢 Sent class ended notifications to ${notifications.length} students`);
+      }
+    } catch (notificationError) {
+      console.error('Error sending end notifications:', notificationError);
+    }
+    
+    console.log(`✅ Class "${classData.title}" completed. Duration: ${classData.actualDuration} mins, Students joined: ${classData.totalStudentsJoined}/${classData.attendees.length}`);
+    
     res.json({ 
       message: 'Class ended successfully', 
-      class: classData 
+      class: classData,
+      analytics: {
+        duration: classData.actualDuration,
+        studentsRegistered: classData.attendees.length,
+        studentsJoined: classData.totalStudentsJoined
+      }
     });
   } catch (err) {
     console.error('Error ending class:', err);
@@ -538,6 +582,44 @@ exports.uploadThumbnail = async (req, res) => {
     });
   } catch (err) {
     console.error('Error uploading thumbnail:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
+// Track student joining live class
+exports.trackStudentJoin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.sub;
+    
+    const classData = await Class.findById(id);
+    
+    if (!classData) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    // Check if class is live
+    if (classData.status !== 'live') {
+      return res.status(400).json({ error: 'Class is not currently live' });
+    }
+    
+    // Add student to studentsJoined array if not already there
+    if (!classData.studentsJoined) {
+      classData.studentsJoined = [];
+    }
+    
+    if (!classData.studentsJoined.includes(userId)) {
+      classData.studentsJoined.push(userId);
+      await classData.save();
+      console.log(`✅ Student ${userId} joined class "${classData.title}"`);
+    }
+    
+    res.json({ 
+      message: 'Join tracked successfully',
+      totalJoined: classData.studentsJoined.length
+    });
+  } catch (err) {
+    console.error('Error tracking student join:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };

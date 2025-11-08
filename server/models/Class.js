@@ -20,6 +20,14 @@ const classSchema = new mongoose.Schema({
   },
   liveUrl: { type: String, default: '' }, // URL for live class (e.g., Zoom, Meet, etc.)
   meetingId: { type: String, default: null }, // VideoSDK meeting room ID
+  
+  // Live class analytics
+  actualStartTime: { type: Date, default: null }, // When class actually went live
+  actualEndTime: { type: Date, default: null }, // When class actually ended
+  actualDuration: { type: Number, default: 0 }, // Actual duration in minutes
+  studentsJoined: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Students who actually joined
+  totalStudentsJoined: { type: Number, default: 0 }, // Count of unique students who joined
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model('Class', classSchema);

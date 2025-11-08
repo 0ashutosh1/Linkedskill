@@ -46,4 +46,7 @@ router.post('/:id/start', authenticate, classController.startClass);
 // End a class (protected route - only for class owner)
 router.post('/:id/end', authenticate, classController.endClass);
 
+// Track student joining live class (protected route)
+router.post('/:id/track-join', authenticate, classController.trackStudentJoin);
+
 module.exports = router;

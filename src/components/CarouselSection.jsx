@@ -261,6 +261,7 @@ export default function CarouselSection({ title, classes, onSeeAll, onJoin, onSe
                 title={classItem.title}
                 tag={classItem.tag}
                 author={classItem.author}
+                userId={classItem.userId}
                 date={classItem.date}
                 time={classItem.time}
                 startTime={classItem.startTime}

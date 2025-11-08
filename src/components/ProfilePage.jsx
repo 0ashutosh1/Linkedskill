@@ -40,6 +40,8 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
   const [startingClass, setStartingClass] = useState(null)
   const [classStartStates, setClassStartStates] = useState({})
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [activeTab, setActiveTab] = useState('profile') // 'profile' or 'classes'
+  const [classFilter, setClassFilter] = useState('all') // 'all', 'upcoming', 'ongoing', 'past'
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -154,16 +156,12 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
 
       if (response.ok) {
         const data = await response.json()
-        const now = new Date()
         
-        // Filter out past classes - only show upcoming/live classes
-        const relevantClasses = (data.classes || []).filter(cls => {
-          const classDate = new Date(cls.startTime || cls.date)
-          // Show all upcoming classes and live classes
-          return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
-        })
+        // Show ALL classes: scheduled, live, and completed
+        // Don't filter out completed classes - users need to see their class history
+        const allClasses = data.classes || []
         
-        setMyClasses(relevantClasses)
+        setMyClasses(allClasses)
       }
     } catch (error) {
       console.error('Error fetching classes:', error)
@@ -216,6 +214,27 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
     if (!myClasses || myClasses.length === 0) return []
     
     let filteredClasses = [...myClasses]
+    const now = new Date()
+
+    // Filter by status (upcoming, ongoing, past)
+    if (classFilter !== 'all') {
+      filteredClasses = filteredClasses.filter(classItem => {
+        const classDate = new Date(classItem.startTime || classItem.date)
+        const classEndTime = new Date(classDate.getTime() + (classItem.duration || 60) * 60000)
+        
+        if (classFilter === 'upcoming') {
+          // Future classes that haven't started yet
+          return classDate > now && classItem.status === 'scheduled'
+        } else if (classFilter === 'ongoing') {
+          // Currently live or classes that are in progress
+          return classItem.status === 'live' || (classDate <= now && classEndTime > now)
+        } else if (classFilter === 'past') {
+          // Classes that have ended
+          return classItem.status === 'completed' || classEndTime < now
+        }
+        return true
+      })
+    }
 
     // Filter by custom date if dateFilter is set
     if (dateFilter) {
@@ -589,9 +608,40 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-4 mb-6 border-b border-slate-700/50">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-6 py-3 font-semibold text-base transition-all duration-300 border-b-2 ${
+              activeTab === 'profile'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            My Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('classes')}
+            className={`px-6 py-3 font-semibold text-base transition-all duration-300 border-b-2 ${
+              activeTab === 'classes'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            My Classes
+            {myClasses.length > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-indigo-600 rounded-full">
+                {myClasses.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="w-full">
           
           {/* My Profile Section */}
+          {activeTab === 'profile' && (
           <div className="space-y-6">
             {/* Profile Header */}
             <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl p-6 text-white border border-indigo-500/20">
@@ -919,15 +969,16 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
               )}
             </div>
           </div>
+          )}
 
           {/* My Classes Section - Only show for own profile */}
-          {isOwnProfile && (
+          {activeTab === 'classes' && isOwnProfile && (
             <div className="space-y-6">
             {/* Classes Header */}
             <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl p-6 text-white border border-indigo-500/20">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-2xl font-bold">My Classes</h2>
+                  <h2 className="text-2xl font-bold">Classes Management</h2>
                   <p className="text-gray-300 text-sm mt-1">
                     {dateFilter ? `Classes from ${new Date(dateFilter).toLocaleDateString()}` : 
                      showAllClasses ? 'All courses' : 'Latest 4 courses'} • Sorted by date
@@ -973,6 +1024,61 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-2 mb-4 pb-4 border-b border-white/10">
+                <span className="text-white/70 text-sm font-medium mr-2">Filter by status:</span>
+                <button
+                  onClick={() => setClassFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    classFilter === 'all'
+                      ? 'bg-indigo-500 text-white shadow-lg'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  All Classes
+                </button>
+                <button
+                  onClick={() => setClassFilter('upcoming')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    classFilter === 'upcoming'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Upcoming
+                </button>
+                <button
+                  onClick={() => setClassFilter('ongoing')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    classFilter === 'ongoing'
+                      ? 'bg-green-500 text-white shadow-lg'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Ongoing
+                </button>
+                <button
+                  onClick={() => setClassFilter('past')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    classFilter === 'past'
+                      ? 'bg-gray-500 text-white shadow-lg'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Past
+                </button>
               </div>
 
               {/* Date Filter Input */}
@@ -1136,6 +1242,59 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                               )}
                             </div>
 
+                            {/* Class Analytics - Show for completed classes */}
+                            {classItem.status === 'completed' && (
+                              <div className="mb-3 p-4 bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-lg border border-slate-500/30">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                  </svg>
+                                  <h4 className="text-sm font-semibold text-indigo-300">Class Analytics</h4>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 text-center">
+                                  <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30">
+                                    <div className="text-2xl font-bold text-blue-400">
+                                      {classItem.totalStudentsJoined || 0}
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">Students Joined</div>
+                                  </div>
+                                  <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30">
+                                    <div className="text-2xl font-bold text-green-400">
+                                      {classItem.attendees?.length || 0}
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">Registered</div>
+                                  </div>
+                                  <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30">
+                                    <div className="text-2xl font-bold text-purple-400">
+                                      {classItem.actualDuration || classItem.duration || 0}
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">Minutes</div>
+                                  </div>
+                                </div>
+                                {classItem.actualStartTime && classItem.actualEndTime && (
+                                  <div className="mt-3 pt-3 border-t border-slate-600/30 text-xs text-gray-400">
+                                    <div className="flex justify-between">
+                                      <span>Started: {new Date(classItem.actualStartTime).toLocaleString()}</span>
+                                      <span>Ended: {new Date(classItem.actualEndTime).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {classItem.totalStudentsJoined !== undefined && classItem.attendees && (
+                                  <div className="mt-2 text-center">
+                                    <span className={`text-xs font-medium ${
+                                      classItem.totalStudentsJoined === classItem.attendees.length 
+                                        ? 'text-green-400' 
+                                        : 'text-yellow-400'
+                                    }`}>
+                                      Attendance Rate: {classItem.attendees.length > 0 
+                                        ? Math.round((classItem.totalStudentsJoined / classItem.attendees.length) * 100) 
+                                        : 0}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {/* Countdown Timer - Only show for scheduled classes with startTime */}
                             {classItem.startTime && classItem.status === 'scheduled' && (
                               <div className="mb-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
@@ -1148,34 +1307,42 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                             )}
 
                             {/* Start Button - Only for scheduled classes */}
-                            {classItem.status === 'scheduled' && classItem.startTime && classStartStates[classItem._id] && (
-                              <div className="mb-3">
-                                <button
-                                  onClick={() => handleStartClass(classItem)}
-                                  disabled={startingClass === classItem._id}
-                                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 
-                                           disabled:from-green-800 disabled:to-emerald-800 disabled:cursor-not-allowed
-                                           text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 
-                                           hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
-                                >
-                                  {startingClass === classItem._id ? (
-                                    <>
-                                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                      </svg>
-                                      Starting Class...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8"/>
-                                      </svg>
-                                      Start Live Class
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            )}
+                            {/* Start Class Button - Only show for class owner (expert who created it) */}
+                            {(() => {
+                              const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                              const currentUserId = currentUser.sub || currentUser.id || currentUser._id;
+                              const classOwnerId = classItem.userId?._id || classItem.userId;
+                              const isOwner = classOwnerId && currentUserId && classOwnerId === currentUserId;
+                              
+                              return isOwner && classItem.status === 'scheduled' && classItem.startTime && classStartStates[classItem._id] && (
+                                <div className="mb-3">
+                                  <button
+                                    onClick={() => handleStartClass(classItem)}
+                                    disabled={startingClass === classItem._id}
+                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 
+                                             disabled:from-green-800 disabled:to-emerald-800 disabled:cursor-not-allowed
+                                             text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 
+                                             hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
+                                  >
+                                    {startingClass === classItem._id ? (
+                                      <>
+                                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Starting Class...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8"/>
+                                        </svg>
+                                        Start Live Class
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })()}
 
                             {/* Live Class Status */}
                             {classItem.status === 'live' && (

@@ -47,8 +47,12 @@ export default function ClassSection({ title, classes, onSeeAll, onJoin, onSelec
                 title={classItem.title}
                 tag={classItem.tag}
                 author={classItem.author}
+                userId={classItem.userId}
                 date={classItem.date}
                 time={classItem.time}
+                startTime={classItem.startTime}
+                status={classItem.status}
+                classId={classItem.classId}
                 description={classItem.description}
                 learners={classItem.learners}
                 level={classItem.level}
@@ -56,6 +60,7 @@ export default function ClassSection({ title, classes, onSeeAll, onJoin, onSelec
                 attendees={classItem.attendees}
                 onSelect={onSelect}
                 onJoin={onJoin}
+                onStart={onStart}
               />
             </div>
           ))

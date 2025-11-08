@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { CompactCountdownTimer } from './CountdownTimer'
 import { getCurrentUser } from '../utils/auth'
 
-export default function CourseCard({title, tag, author, date, time, startTime, status, classId, onSelect, onJoin, onStart, description, learners, level, image, attendees}){
+export default function CourseCard({title, tag, author, date, time, startTime, status, classId, onSelect, onJoin, onStart, description, learners, level, image, attendees, userId}){
   const [saved, setSaved] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [canStart, setCanStart] = useState(false)
@@ -11,8 +11,33 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
   const [isRegistering, setIsRegistering] = useState(false)
   
   const currentUser = getCurrentUser()
+  const currentUserId = currentUser?.sub || currentUser?._id || currentUser?.id
   const isInstructor = currentUser && currentUser.role?.name === 'expert'
-  const isOwner = currentUser && author === currentUser.name
+  
+  // Check if current user is the owner of this class
+  const classOwnerId = userId?._id || userId?.toString() || userId
+  const isOwner = currentUserId && classOwnerId && currentUserId.toString() === classOwnerId.toString()
+  
+  // Debug logging
+  console.log('🔍 CourseCard Debug:', {
+    title,
+    currentUserId,
+    classOwnerId,
+    userId,
+    isInstructor,
+    isOwner,
+    userRole: currentUser?.role?.name
+  })
+  
+  // Check if registration is closed (15 minutes before class)
+  const isRegistrationClosed = () => {
+    if (!startTime || isRegistered) return false
+    const classStartTime = new Date(startTime).getTime()
+    const currentTime = new Date().getTime()
+    const timeUntilClass = classStartTime - currentTime
+    const fifteenMinutes = 15 * 60 * 1000
+    return timeUntilClass <= fifteenMinutes
+  }
   
   // Format the start time to display
   const formatClassTime = () => {
@@ -124,6 +149,19 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
     if (!token) {
       alert('Please login to register for classes')
       return
+    }
+
+    // Check if registration is closed (15 minutes before class start)
+    if (startTime && !isRegistered) {
+      const classStartTime = new Date(startTime).getTime()
+      const currentTime = new Date().getTime()
+      const timeUntilClass = classStartTime - currentTime
+      const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in milliseconds
+      
+      if (timeUntilClass <= fifteenMinutes) {
+        alert('Registration is closed. You cannot register within 15 minutes of class start time.')
+        return
+      }
     }
     
     setIsRegistering(true)
@@ -284,14 +322,22 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                 ) : (
                   <button 
                     onClick={handleRegisterToggle}
-                    disabled={isRegistering}
+                    disabled={isRegistering || (!isRegistered && isRegistrationClosed())}
                     className={`w-full py-2 px-3 rounded text-xs font-semibold transition-all duration-200
                                ${isRegistered 
-                                 ? 'bg-green-600 hover:bg-green-700 text-white'
-                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                 ? 'bg-red-600 hover:bg-red-700 text-white'
+                                 : isRegistrationClosed()
+                                   ? 'bg-gray-400 cursor-not-allowed text-white'
+                                   : 'bg-blue-600 hover:bg-blue-700 text-white'
                                } ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    {isRegistering ? 'Processing...' : isRegistered ? '✅ Registered' : '📝 Register'}
+                    {isRegistering 
+                      ? 'Processing...' 
+                      : isRegistered 
+                        ? '❌ Unregister' 
+                        : isRegistrationClosed()
+                          ? '🔒 Registration Closed'
+                          : '📝 Register'}
                   </button>
                 )}
               </div>
@@ -427,20 +473,72 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                   </button>
                 </div>
 
-                {/* Start Learning Button */}
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onJoin && onJoin({ title, tag, author, date, time }); }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 
-                             text-white text-xl font-bold py-6 px-8 rounded-xl 
-                             hover:shadow-xl hover:shadow-blue-500/30
-                             transition-all duration-300 hover:scale-[1.02]
-                             flex items-center justify-center gap-4"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-8 4h8m-8 4h8"/>
-                  </svg>
-                  Start Learning Now
-                </button>
+                {/* Start Learning / Register Button */}
+                {isInstructor && isOwner && status === 'scheduled' && startTime ? (
+                  <button 
+                    onClick={handleStartClass}
+                    disabled={!canStart || isStarting}
+                    className={`w-full text-xl font-bold py-6 px-8 rounded-xl 
+                               transition-all duration-300 hover:scale-[1.02]
+                               flex items-center justify-center gap-4
+                               ${canStart && !isStarting
+                                 ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-xl hover:shadow-green-500/30'
+                                 : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                               }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {isStarting ? 'Starting Class...' : 'Start Class'}
+                  </button>
+                ) : status === 'live' ? (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      onJoin && onJoin({ title, tag, author, date, time, status, classId }); 
+                    }}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 
+                               text-white text-xl font-bold py-6 px-8 rounded-xl 
+                               hover:shadow-xl hover:shadow-red-500/30
+                               transition-all duration-300 hover:scale-[1.02]
+                               flex items-center justify-center gap-4"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    🔴 Join Live Class
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleRegisterToggle}
+                    disabled={isRegistering || (!isRegistered && isRegistrationClosed())}
+                    className={`w-full text-xl font-bold py-6 px-8 rounded-xl 
+                               transition-all duration-300 hover:scale-[1.02]
+                               flex items-center justify-center gap-4
+                               ${isRegistered 
+                                 ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white hover:shadow-xl hover:shadow-red-500/30'
+                                 : isRegistrationClosed()
+                                   ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-xl hover:shadow-blue-500/30'
+                               } ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isRegistered ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                      )}
+                    </svg>
+                    {isRegistering 
+                      ? 'Processing...' 
+                      : isRegistered 
+                        ? '❌ Unregister from Class' 
+                        : isRegistrationClosed()
+                          ? '🔒 Registration Closed'
+                          : 'Register Now'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

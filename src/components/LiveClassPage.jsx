@@ -77,7 +77,7 @@ function ParticipantView({ participantId, isHost }) {
   );
 }
 
-function Controls({ onToggleChat, isHost }) {
+function Controls({ onToggleChat, isHost, classData }) {
   const meetingConfig = useMeeting();
   const { leave, toggleMic, toggleWebcam, localMicOn, localWebcamOn } = meetingConfig || {};
 
@@ -103,8 +103,37 @@ function Controls({ onToggleChat, isHost }) {
     }
   };
 
-  const handleLeave = () => {
+  const handleLeave = async () => {
     if (window.confirm(isHost ? "End class?" : "Leave class?")) {
+      // If host is ending the class, call backend to mark it as completed
+      if (isHost) {
+        try {
+          const authToken = localStorage.getItem('authToken');
+          const classId = classData?.classId || classData?._id;
+          
+          if (classId) {
+            console.log('🛑 Host ending class, calling backend to mark as completed...');
+            const response = await fetch(`http://localhost:4000/classes/${classId}/end`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log('✅ Class marked as completed:', data);
+            } else {
+              console.error('❌ Failed to mark class as completed');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error calling endClass API:', error);
+        }
+      }
+      
+      // Then leave the meeting
       if (leave && typeof leave === 'function') {
         console.log('🚪 Leaving meeting...');
         try {
@@ -417,7 +446,7 @@ function MeetingView({ classData, meetingId, onMeetingLeave, isInstructor, userN
       {joined === "JOINED" ? (
         <>
           <div className="mb-6">
-            <Controls onToggleChat={() => setIsChatOpen(!isChatOpen)} isHost={isInstructor} />
+            <Controls onToggleChat={() => setIsChatOpen(!isChatOpen)} isHost={isInstructor} classData={classData} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

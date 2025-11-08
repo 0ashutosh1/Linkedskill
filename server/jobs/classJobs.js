@@ -153,7 +153,7 @@ function defineClassJobs(agenda) {
         if (classData.attendees && classData.attendees.length > 0) {
           const notifications = classData.attendees.map((attendeeId) => ({
             type: 'class_reminder',
-            message: `⏰ Reminder: "${classData.title}" starts in 15 minutes!`,
+            message: `⏰ Reminder: "${classData.title}" starts in 15 minutes! Be ready to join.`,
             senderId: classData.userId,
             receiverId: attendeeId,
             priority: 'high',
