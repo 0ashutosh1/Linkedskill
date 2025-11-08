@@ -8,7 +8,8 @@ export default function ConnectedStudents({
   onStudentChatClick, 
   onStudentProfileClick,
   upcomingClasses = [],
-  onClassUpdate
+  onClassUpdate,
+  onConnectionRemoved
 }) {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,6 +17,7 @@ export default function ConnectedStudents({
   const [registeredClasses, setRegisteredClasses] = useState(new Set())
   const [registeringClass, setRegisteringClass] = useState(null)
   const [activeTab, setActiveTab] = useState('students') // 'students' or 'classes'
+  const [removingConnection, setRemovingConnection] = useState(null)
 
   const currentUser = getCurrentUser()
   const isStudent = currentUser?.role?.name === 'student'
@@ -88,7 +90,6 @@ export default function ConnectedStudents({
 
   const handleClassRegistration = async (classId, isRegistered) => {
     try {
-      // console.log('ConnectedStudents: Starting registration for class:', classId, 'isRegistered:', isRegistered)
       setRegisteringClass(classId)
       const token = localStorage.getItem('authToken')
       if (!token) {
@@ -128,7 +129,6 @@ export default function ConnectedStudents({
         // Show success message
         const action = isRegistered ? 'unregistered from' : 'registered for'
         // You can add a toast notification here if you have one
-        // console.log(`ConnectedStudents: Successfully ${action} class`)
       } else {
         const errorData = await response.json()
         alert(errorData.error || `Failed to ${isRegistered ? 'unregister from' : 'register for'} class`)
@@ -138,6 +138,46 @@ export default function ConnectedStudents({
       alert('An error occurred. Please try again.')
     } finally {
       setRegisteringClass(null)
+    }
+  }
+
+  const handleRemoveConnection = async (studentId, studentName) => {
+    if (!confirm(`Are you sure you want to remove ${studentName} from your connections?`)) {
+      return
+    }
+
+    try {
+      setRemovingConnection(studentId)
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        alert('Please login to remove connections')
+        return
+      }
+
+      const response = await fetch(`${API_URL}/connections/unfollow/${studentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        // Immediately refresh the students list
+        await fetchConnectedStudents()
+        
+        // Also notify parent component if needed
+        if (onConnectionRemoved) {
+          onConnectionRemoved()
+        }
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || 'Failed to remove connection')
+      }
+    } catch (err) {
+      console.error('Error removing connection:', err)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setRemovingConnection(null)
     }
   }
 
@@ -244,9 +284,6 @@ export default function ConnectedStudents({
                                  transition-colors duration-200 leading-tight">
                     {student.name.split(' ')[0]}
                   </h5>
-                  <p className="text-xs text-gray-300 leading-tight truncate">
-                    {student.designation || 'Student'}
-                  </p>
                 </div>
 
                 {/* Action Buttons */}
@@ -287,6 +324,30 @@ export default function ConnectedStudents({
                       </svg>
                     </button>
                   )}
+
+                  {/* Remove Connection Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRemoveConnection(student.id, student.name)
+                    }}
+                    disabled={removingConnection === student.id}
+                    className="w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/30 
+                               text-red-400 flex items-center justify-center transition-colors duration-200 
+                               hover:scale-105 active:scale-95 border border-red-500/30 
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Remove connection"
+                  >
+                    {removingConnection === student.id ? (
+                      <svg className="w-2.5 h-2.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
@@ -302,13 +363,6 @@ export default function ConnectedStudents({
               // Allow registration for students on any scheduled class (including own for testing)
               const canRegister = isStudent && classItem.status === 'scheduled'
               const isLoading = registeringClass === classItem._id
-
-              // Debug logging can be enabled for troubleshooting
-              // console.log('ConnectedStudents Class Debug:', {
-              //   classId: classItem._id,
-              //   classTitle: classItem.title,
-              //   isStudent, isExpert, isOwner, canRegister, isRegistered
-              // })
 
               return (
                 <div

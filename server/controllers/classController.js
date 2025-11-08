@@ -199,40 +199,61 @@ exports.getMyClasses = async (req, res) => {
 exports.updateClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, date, image, categoryId, subCategoryId, meetingId, status, liveUrl } = req.body;
+    const { title, description, date, startTime, duration, image, categoryId, subCategoryId, meetingId, status, liveUrl } = req.body;
     
-    const classData = await Class.findById(id);
+    // Single query with authorization check
+    const classData = await Class.findOne({ _id: id, userId: req.user.sub });
     
     if (!classData) {
-      return res.status(404).json({ error: 'Class not found' });
+      return res.status(404).json({ error: 'Class not found or not authorized' });
     }
     
-    // Check if the user is the owner of the class
-    if (classData.userId.toString() !== req.user.sub) {
-      return res.status(403).json({ error: 'Not authorized to update this class' });
-    }
+    // Track if we need to reschedule jobs
+    const dateChanged = date && date !== classData.date;
+    const startTimeChanged = startTime && startTime !== classData.startTime;
+    const shouldReschedule = dateChanged || startTimeChanged;
     
-    // Update fields
-    if (title) classData.title = title;
-    if (description) classData.description = description;
-    if (date) classData.date = date;
-    if (image !== undefined) classData.image = image;
-    if (categoryId !== undefined) classData.categoryId = categoryId;
-    if (subCategoryId !== undefined) classData.subCategoryId = subCategoryId;
-    if (meetingId !== undefined) classData.meetingId = meetingId;
-    if (status !== undefined) classData.status = status;
-    if (liveUrl !== undefined) classData.liveUrl = liveUrl;
+    // Build update object dynamically (only update provided fields)
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (date !== undefined) updates.date = date;
+    if (startTime !== undefined) updates.startTime = startTime;
+    if (duration !== undefined) updates.duration = duration;
+    if (image !== undefined) updates.image = image;
+    if (categoryId !== undefined) updates.categoryId = categoryId;
+    if (subCategoryId !== undefined) updates.subCategoryId = subCategoryId;
+    if (meetingId !== undefined) updates.meetingId = meetingId;
+    if (status !== undefined) updates.status = status;
+    if (liveUrl !== undefined) updates.liveUrl = liveUrl;
     
-    console.log('✅ Updated class with:', { meetingId, status, liveUrl });
-    
+    // Perform atomic update
+    Object.assign(classData, updates);
     await classData.save();
+    
+    // Reschedule jobs if date/time changed
+    if (shouldReschedule && classData.status === 'scheduled') {
+      try {
+        await cancelClassJobs(id);
+        await Promise.all([
+          scheduleClassGoLive(classData),
+          scheduleClassReminder(classData),
+          scheduleClassEnd(classData)
+        ]);
+      } catch (jobError) {
+        console.error('⚠️  Error rescheduling class jobs:', jobError);
+      }
+    }
+    
+    console.log('✅ Class updated successfully:', id);
+    
     res.json({ 
       message: 'Class updated successfully', 
       class: classData 
     });
   } catch (err) {
-    console.error('Error updating class:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error updating class:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
 
@@ -241,29 +262,42 @@ exports.deleteClass = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const classData = await Class.findById(id);
+    // Single query with authorization check and deletion
+    const classData = await Class.findOneAndDelete({ 
+      _id: id, 
+      userId: req.user.sub 
+    });
     
     if (!classData) {
-      return res.status(404).json({ error: 'Class not found' });
+      return res.status(404).json({ error: 'Class not found or not authorized' });
     }
     
-    // Check if the user is the owner of the class
-    if (classData.userId.toString() !== req.user.sub) {
-      return res.status(403).json({ error: 'Not authorized to delete this class' });
-    }
+    // Perform cleanup operations asynchronously (don't wait for them)
+    Promise.all([
+      // Cancel scheduled jobs
+      cancelClassJobs(id).catch(err => 
+        console.error('⚠️  Error cancelling class jobs:', err)
+      ),
+      // Delete notifications related to this class (optional cleanup)
+      Notification.deleteMany({ 
+        message: { $regex: classData.title, $options: 'i' } 
+      }).catch(err => 
+        console.error('⚠️  Error deleting notifications:', err)
+      )
+    ]);
     
-    // Cancel all scheduled jobs for this class
-    try {
-      await cancelClassJobs(id);
-    } catch (jobError) {
-      console.error('⚠️  Error cancelling class jobs:', jobError);
-    }
+    console.log('✅ Class deleted successfully:', id);
     
-    await Class.findByIdAndDelete(id);
-    res.json({ message: 'Class deleted successfully' });
+    res.json({ 
+      message: 'Class deleted successfully',
+      deletedClass: {
+        id: classData._id,
+        title: classData.title
+      }
+    });
   } catch (err) {
-    console.error('Error deleting class:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error deleting class:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
 

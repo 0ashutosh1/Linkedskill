@@ -53,6 +53,8 @@ export default function App() {
   const [userPhotoUrl, setUserPhotoUrl] = useState('')
   const [userName, setUserName] = useState('')
   const [showAllUpcoming, setShowAllUpcoming] = useState(false)
+  const [userRole, setUserRole] = useState(null) // Track user role for sidebar updates
+  const [sidebarKey, setSidebarKey] = useState(0) // Force sidebar re-render
 
   // Dynamic category-based classes state
   const [categoriesWithClasses, setCategoriesWithClasses] = useState([])
@@ -112,7 +114,6 @@ export default function App() {
       const token = localStorage.getItem('authToken')
       if (!token) return
 
-      console.log('🔍 Fetching user profile...')
       const response = await fetch('http://localhost:4000/profile/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -167,7 +168,6 @@ export default function App() {
       const categoriesWithClassesData = categoryResults.filter(category => category.classes.length > 0)
       
       setCategoriesWithClasses(categoriesWithClassesData)
-      console.log('Categories with classes (upcoming only):', categoriesWithClassesData.map(c => `${c.name} (${c.classes.length} classes)`))
     } catch (error) {
       console.error('Error fetching classes by categories:', error)
       setCategoriesWithClasses([])
@@ -180,18 +180,21 @@ export default function App() {
   useEffect(() => {
     try {
       const authenticated = checkAuth()
-      console.log('Authentication check:', authenticated);
       setIsAuthenticated(authenticated)
       
       // Fetch connected experts and classes if authenticated
       if (authenticated) {
+        // Load user role
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        if (user.role) {
+          setUserRole(user.role.name)
+        }
+        
         // Check if onboarding was completed
         const onboardingComplete = localStorage.getItem('onboardingComplete')
-        console.log('Initial load - onboarding complete:', onboardingComplete)
         
         if (!onboardingComplete) {
           // User is authenticated but hasn't completed onboarding
-          console.log('User needs to complete onboarding')
           setShowOnboarding(true)
         } else {
           // User has completed onboarding, go to home
@@ -211,10 +214,31 @@ export default function App() {
     }
   }, []) // Remove fetchConnectedExperts from dependencies to prevent infinite loop
 
+  // Refetch connections when returning to home/dashboard
+  useEffect(() => {
+    if (isAuthenticated && route === 'home') {
+      fetchConnectedExperts()
+    }
+  }, [route, isAuthenticated, fetchConnectedExperts])
 
-
-  function handleLogin(data) {
-    console.log('Login successful:', data)
+  function handleLogin(userData) {
+    // Update user role immediately after login
+    // LoginPage passes data.user, so check both userData directly and userData.role
+    if (userData) {
+      const roleToSet = userData.role?.name || userData.roleName
+      if (roleToSet) {
+        setUserRole(roleToSet)
+        setSidebarKey(prev => prev + 1) // Force sidebar re-render
+      } else {
+        // Try to get from localStorage if not in userData
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        if (user.role) {
+          setUserRole(user.role.name)
+          setSidebarKey(prev => prev + 1) // Force sidebar re-render
+        }
+      }
+    }
+    
     setIsAuthenticated(true)
     setRoute('home')
     fetchConnectedExperts() // Fetch connections after login
@@ -224,27 +248,40 @@ export default function App() {
   }
 
   function handleSignup(data) {
-    console.log('✅ Signup successful:', data)
-    console.log('🔍 Checking onboarding status...')
+    // IMPORTANT: Update user role immediately after signup
+    // data contains { token, user }, so check data.user.role
+    const user = data.user || data
+    
+    if (user && user.role) {
+      const roleName = user.role.name
+      setUserRole(roleName)
+      setSidebarKey(prev => prev + 1) // Force sidebar re-render
+      
+      // Also force update localStorage to be sure
+      localStorage.setItem('user', JSON.stringify(user))
+    } else {
+      // Fallback to localStorage
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+      if (storedUser.role) {
+        setUserRole(storedUser.role.name)
+        setSidebarKey(prev => prev + 1) // Force sidebar re-render
+      }
+    }
     
     // IMPORTANT: Clear any existing onboarding flag for new signups
     localStorage.removeItem('onboardingComplete')
     
     // Check if onboarding is needed (should always be needed for new signups)
     const onboardingComplete = localStorage.getItem('onboardingComplete')
-    console.log('📋 Onboarding complete status:', onboardingComplete)
     
     if (!onboardingComplete) {
-      console.log('🎯 NEW USER - Showing onboarding page...')
       // Set authentication first, then show onboarding
       setIsAuthenticated(true)
       // Use setTimeout to ensure state updates properly
       setTimeout(() => {
         setShowOnboarding(true)
-        console.log('✨ showOnboarding state set to TRUE')
       }, 0)
     } else {
-      console.log('⚠️ Onboarding already complete - going to home...')
       setIsAuthenticated(true)
       setRoute('home')
       fetchConnectedExperts()
@@ -255,7 +292,13 @@ export default function App() {
   }
 
   function handleOnboardingComplete() {
-    console.log('Onboarding complete')
+    // Update user role after onboarding
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (user.role) {
+      setUserRole(user.role.name)
+      setSidebarKey(prev => prev + 1) // Force sidebar re-render
+    }
+    
     setShowOnboarding(false)
     setRoute('home')
     fetchConnectedExperts() // Fetch connections after onboarding
@@ -389,7 +432,6 @@ export default function App() {
       
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Class started, navigating to live class:', data.class)
         
         // Make sure userId is set - use current user's ID as owner
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
@@ -426,7 +468,6 @@ export default function App() {
       }
 
       let { status, classId, title, meetingId } = classData
-      console.log('App: Attempting to join class:', classData)
       
       // Fetch fresh class data to check if it has been started (has meetingId)
       if (classId && !meetingId) {
@@ -439,7 +480,6 @@ export default function App() {
           
           if (checkResponse.ok) {
             const freshClassData = await checkResponse.json()
-            console.log('📡 Fetched fresh class data:', freshClassData)
             
             // Update with fresh data
             if (freshClassData.class) {
@@ -456,7 +496,6 @@ export default function App() {
       // If class has a meetingId or status is 'live', join the live class
       if (status === 'live' || meetingId) {
         // Class is currently live - navigate to live class page
-        console.log('🎥 Joining live class:', classData)
         setCurrentCourse(classData)
         setRoute('live-class')
         return
@@ -565,20 +604,16 @@ export default function App() {
 
   // Show onboarding if user just signed up and hasn't completed onboarding
   if (isAuthenticated && showOnboarding) {
-    console.log('🎨 Rendering OnboardingPage... (isAuthenticated:', isAuthenticated, 'showOnboarding:', showOnboarding, ')')
     return <OnboardingPage onComplete={handleOnboardingComplete} />
   }
 
   // Show login/signup pages if not authenticated
   if (!isAuthenticated) {
-    console.log('🔐 User not authenticated, showing auth page:', authPage);
     if (authPage === 'login') {
       return <LoginPage onLogin={handleLogin} onSwitchToSignup={() => setAuthPage('signup')} />
     }
     return <SignupPage onSignup={handleSignup} onSwitchToLogin={() => setAuthPage('login')} />
   }
-
-  console.log('🏠 User authenticated, rendering main app with route:', route, '(showOnboarding:', showOnboarding, ')');
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0f] text-white relative overflow-hidden">
@@ -616,24 +651,36 @@ export default function App() {
         connectionId={selectedChatExpert?.connectionId}
       />
       
-      {/* Mobile Header - Enhanced responsive design with landing page colors */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900/90 backdrop-blur-xl shadow-2xl z-40 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between border-b border-purple-500/20">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="relative w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50">
-            <span className="text-white font-bold text-sm sm:text-base cursor-pointer"
+      {/* Mobile Header - Enhanced fully responsive design with landing page colors */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl shadow-2xl z-40 
+                      px-3 xs:px-4 sm:px-5 py-2.5 xs:py-3 sm:py-3.5 
+                      flex items-center justify-between border-b border-purple-500/20">
+        <div className="flex items-center gap-2 xs:gap-2.5 sm:gap-3">
+          <div className="relative w-7 h-7 xs:w-8 xs:h-8 sm:w-9 sm:h-9 
+                          bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 
+                          rounded-lg xs:rounded-xl shadow-lg shadow-purple-500/50 
+                          flex items-center justify-center">
+            <span className="text-white font-bold text-xs xs:text-sm sm:text-base cursor-pointer"
               onClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }}>
               LS
             </span>
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl blur-md opacity-50 -z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-lg xs:rounded-xl blur-md opacity-50 -z-10"></div>
           </div>
-          <div className="text-base sm:text-lg font-semibold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">LinkedSkill</div>
+          <div className="text-sm xs:text-base sm:text-lg font-semibold 
+                          bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 
+                          bg-clip-text text-transparent truncate max-w-[120px] xs:max-w-none">
+            LinkedSkill
+          </div>
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 transition-colors"
+          className="w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 
+                     flex items-center justify-center rounded-lg 
+                     bg-violet-500/10 hover:bg-violet-500/20 
+                     border border-violet-500/30 transition-colors"
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMobileMenuOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
             ) : (
@@ -643,20 +690,25 @@ export default function App() {
         </button>
       </div>
 
-      {/* Main Layout Container - Full width layout */}
+      {/* Main Layout Container - Fully responsive layout */}
       <div className="h-screen bg-slate-900/30 backdrop-blur-sm overflow-hidden flex flex-col">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0">
-          {/* Sidebar - Fixed position with glassmorphism */}
+          {/* Sidebar - Fully responsive fixed position with glassmorphism */}
           <aside className={`
-            fixed lg:static inset-y-0 left-0 z-50 w-72 sm:w-80 lg:w-auto lg:col-span-2 
-            bg-slate-900/90 backdrop-blur-xl border-r border-slate-700/50
+            fixed lg:static inset-y-0 left-0 z-50 
+            w-64 xs:w-72 sm:w-80 md:w-84 lg:w-auto lg:col-span-2 
+            bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/50
             transform transition-transform duration-300 ease-in-out lg:transform-none
             ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            pt-14 sm:pt-16 lg:pt-0 lg:h-full flex flex-col
+            pt-12 xs:pt-13 sm:pt-14 md:pt-16 lg:pt-0 
+            lg:h-full flex flex-col
             shadow-2xl lg:shadow-none
           `}>
-            <div className="flex-1 px-3 sm:px-4 lg:px-0 py-6 overflow-y-auto lg:overflow-y-auto">
+            <div className="flex-1 px-2 xs:px-3 sm:px-4 lg:px-0 py-4 xs:py-5 sm:py-6 
+                            overflow-y-auto">
               <Sidebar 
+                key={sidebarKey}
+                userRole={userRole}
                 onLogoClick={() => { setRoute('home'); setSelectedProfile(null); setIsMobileMenuOpen(false); }} 
                 onFriendClick={(p) => { setSelectedProfile(p); setRoute('profile'); setIsMobileMenuOpen(false); }} 
                 onNavClick={(r) => { if (r === 'addclass') setIsAddClassModalOpen(true); else setRoute(r); setIsMobileMenuOpen(false); }} 
@@ -665,42 +717,54 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Overlay for mobile menu */}
+          {/* Overlay for mobile menu - Enhanced with smooth transition */}
           {isMobileMenuOpen && (
             <div 
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden 
+                         animate-fadeIn"
               onClick={() => setIsMobileMenuOpen(false)}
               onTouchStart={() => setIsMobileMenuOpen(false)}
             />
           )}
 
-          {/* Main Content Area - Scrollable center content */}
+          {/* Main Content Area - Fully responsive scrollable center content */}
           <main className={`
             ${route === 'home' ? 'lg:col-span-8' : 'lg:col-span-10'} 
-            pt-14 sm:pt-16 lg:pt-0 
-            px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 
-            py-4 sm:py-6 lg:py-8 xl:py-10
+            pt-12 xs:pt-13 sm:pt-14 md:pt-16 lg:pt-0 
+            px-2 xs:px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 2xl:px-10 
+            py-3 xs:py-4 sm:py-5 md:py-6 lg:py-7 xl:py-8 2xl:py-10
             lg:overflow-y-auto lg:overflow-x-hidden
             min-h-screen lg:min-h-0 lg:h-full
           `}>
-            {/* Enhanced responsive header with gradient */}
+            {/* Enhanced fully responsive header with gradient */}
             {route !== 'experts' && (
-              <header className="mb-4 sm:mb-6 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 w-full sm:w-auto">
-                  <div className="relative w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md cursor-pointer hidden lg:flex"
+              <header className="mb-3 xs:mb-4 sm:mb-5 md:mb-6 lg:mb-7 xl:mb-8 
+                                 flex flex-col sm:flex-row items-start sm:items-center 
+                                 gap-2 xs:gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 xs:gap-2.5 sm:gap-3 md:gap-4 
+                                flex-1 w-full sm:w-auto">
+                  <div className="relative w-7 h-7 xs:w-8 xs:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 
+                                  bg-gradient-to-br from-indigo-600 to-purple-600 
+                                  rounded-lg xs:rounded-xl shadow-md cursor-pointer hidden lg:flex
+                                  items-center justify-center"
                     onClick={() => { setRoute('home'); setSelectedProfile(null); }}>
-                    <span className="text-white font-bold text-lg md:text-xl">LS</span>
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl blur-sm opacity-30 -z-10"></div>
+                    <span className="text-white font-bold text-base xs:text-lg md:text-xl">LS</span>
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg xs:rounded-xl blur-sm opacity-30 -z-10"></div>
                   </div>
-                  <div className="relative w-full sm:max-w-md lg:max-w-lg">
+                  <div className="relative w-full sm:max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl">
                     <input 
-                      placeholder="Search your course here..." 
-                      className="w-full border border-slate-600/50 rounded-full pl-4 pr-10 py-2 sm:py-2.5 text-sm sm:text-base 
+                      placeholder="Search courses..." 
+                      className="w-full border border-slate-600/50 rounded-full 
+                                pl-3 xs:pl-4 pr-9 xs:pr-10 
+                                py-1.5 xs:py-2 sm:py-2.5 
+                                text-xs xs:text-sm sm:text-base 
                                 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50
-                                bg-slate-800/80 backdrop-blur-sm text-gray-200 placeholder-gray-500 shadow-sm hover:shadow-md transition-shadow" 
+                                bg-slate-800/80 backdrop-blur-sm text-gray-200 placeholder-gray-500 
+                                shadow-sm hover:shadow-md transition-shadow" 
                     />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button className="absolute right-2 xs:right-3 top-1/2 -translate-y-1/2 
+                                       text-gray-400 hover:text-gray-300 transition-colors">
+                      <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                       </svg>
                     </button>
@@ -711,27 +775,46 @@ export default function App() {
 
             {route === 'home' ? (
               <>
-                {/* Enhanced responsive hero section with gradient */}
-                <section className="mb-4 sm:mb-6 lg:mb-8">
-                  <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white rounded-xl sm:rounded-2xl 
-                                  p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6 lg:gap-8
-                                  shadow-lg hover:shadow-xl transition-shadow duration-300 relative overflow-hidden border border-indigo-500/20">
+                {/* Enhanced fully responsive hero section with gradient */}
+                <section className="mb-3 xs:mb-4 sm:mb-5 md:mb-6 lg:mb-7 xl:mb-8">
+                  <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white 
+                                  rounded-lg xs:rounded-xl sm:rounded-2xl 
+                                  p-3 xs:p-4 sm:p-5 md:p-6 lg:p-7 xl:p-8 
+                                  flex flex-col lg:flex-row items-center justify-between 
+                                  gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-8
+                                  shadow-lg hover:shadow-xl transition-shadow duration-300 
+                                  relative overflow-hidden border border-indigo-500/20">
                     {/* Subtle overlay */}
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-900/20 via-slate-800/20 to-slate-900/20 blur-xl -z-10"></div>
                     
-                    <div className="flex-1 text-center lg:text-left relative z-10">
-                      <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-2">Online Course</div>
-                      <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight mb-3 sm:mb-4">
+                    <div className="flex-1 text-center lg:text-left relative z-10 w-full">
+                      <div className="text-[10px] xs:text-xs sm:text-sm uppercase tracking-wider opacity-90 
+                                     mb-1 xs:mb-1.5 sm:mb-2">
+                        Online Course
+                      </div>
+                      <h2 className="text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl 
+                                     font-bold leading-tight 
+                                     mb-2 xs:mb-2.5 sm:mb-3 md:mb-3.5 lg:mb-4">
                         Sharpen Your Skills With Professional Online Courses
                       </h2>
-                      <button className="bg-white/15 backdrop-blur-sm border border-white/25 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-medium 
-                                       text-sm sm:text-base hover:bg-white/25 transform hover:scale-105 transition-all duration-200
+                      <button className="bg-white/15 backdrop-blur-sm border border-white/25 text-white 
+                                       px-3 xs:px-4 sm:px-5 md:px-6 
+                                       py-1.5 xs:py-2 sm:py-2.5 
+                                       rounded-full font-medium 
+                                       text-xs xs:text-sm sm:text-base 
+                                       hover:bg-white/25 transform hover:scale-105 transition-all duration-200
                                        shadow-md hover:shadow-lg">
                         Join Now
                       </button>
                     </div>
-                    <div className="w-full max-w-[200px] h-20 sm:h-24 lg:w-48 lg:h-28 bg-white/8 backdrop-blur-sm rounded-lg sm:rounded-xl flex-shrink-0
-                                    border border-white/15" />
+                    <div className="w-full max-w-[150px] h-16 
+                                    xs:max-w-[180px] xs:h-20 
+                                    sm:max-w-[200px] sm:h-24 
+                                    lg:w-44 lg:h-26 
+                                    xl:w-48 xl:h-28 
+                                    bg-white/8 backdrop-blur-sm 
+                                    rounded-md xs:rounded-lg sm:rounded-xl 
+                                    flex-shrink-0 border border-white/15" />
                   </div>
                 </section>
 
@@ -912,7 +995,6 @@ export default function App() {
                 profile={selectedProfile} 
                 onBack={() => { setRoute('home'); setSelectedProfile(null); }}
                 onJoinLiveClass={(classData) => {
-                  console.log('🎥 Joining live class:', classData);
                   setCurrentCourse(classData);
                   setRoute('live-class');
                 }}
@@ -938,10 +1020,13 @@ export default function App() {
             ) : null }
           </main>
 
-          {/* Fixed responsive right panel with glassmorphism */}
+          {/* Fixed fully responsive right panel with glassmorphism */}
           {route === 'home' && (
-            <aside className="lg:col-span-2 border-t lg:border-t-0 lg:border-l border-slate-700/50 bg-slate-900/60 backdrop-blur-xl
-                             px-3 sm:px-4 lg:px-4 py-3 sm:py-4 lg:py-4
+            <aside className="lg:col-span-2 
+                             border-t lg:border-t-0 lg:border-l border-slate-700/50 
+                             bg-slate-900/60 backdrop-blur-xl
+                             px-2 xs:px-3 sm:px-4 lg:px-3 xl:px-4 
+                             py-2 xs:py-3 sm:py-4 lg:py-4
                              order-first lg:order-last
                              lg:h-full lg:flex lg:flex-col shadow-lg">
               <div className="lg:flex-1 lg:h-full overflow-visible">
@@ -960,6 +1045,7 @@ export default function App() {
                   userPhotoUrl={userPhotoUrl}
                   userName={userName}
                   onPhotoUpdate={fetchUserProfile}
+                  onConnectionRemoved={fetchConnectedExperts}
                 />
               </div>
             </aside>

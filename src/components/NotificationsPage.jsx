@@ -7,7 +7,6 @@ export default function NotificationsPage({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('all') // 'all', 'unread', 'read'
-  const [typeFilter, setTypeFilter] = useState('all') // 'all', 'info', 'warning', etc.
 
   useEffect(() => {
     fetchNotifications()
@@ -16,7 +15,6 @@ export default function NotificationsPage({ onBack }) {
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('authToken')
-      console.log('Auth token:', token ? 'Found' : 'Not found')
       
       if (!token) {
         setError('Please login to view notifications')
@@ -24,18 +22,14 @@ export default function NotificationsPage({ onBack }) {
         return
       }
 
-      console.log('Fetching notifications from:', `${API_URL}/notifications`)
       const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-
-      console.log('Response status:', response.status)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('Notifications data:', data)
         setNotifications(data.notifications || [])
       } else {
         const errorData = await response.json().catch(() => ({}))
@@ -152,11 +146,6 @@ export default function NotificationsPage({ onBack }) {
       filtered = filtered.filter(notif => !notif.is_read)
     } else if (filter === 'read') {
       filtered = filtered.filter(notif => notif.is_read)
-    }
-
-    // Filter by type
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(notif => notif.type === typeFilter)
     }
 
     return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -321,26 +310,6 @@ export default function NotificationsPage({ onBack }) {
               ))}
             </div>
           </div>
-
-          {/* Type Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-200">Type:</span>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-1 text-sm border border-slate-600 rounded-lg bg-slate-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="all">All Types</option>
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
-              <option value="error">Error</option>
-              <option value="success">Success</option>
-              <option value="reminder">Reminder</option>
-              <option value="update">Update</option>
-              <option value="announcement">Announcement</option>
-              <option value="message">Message</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -417,30 +386,6 @@ export default function NotificationsPage({ onBack }) {
                           <span>From: {notification.senderId.name}</span>
                         )}
                       </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      {!notification.is_read && (
-                        <button
-                          onClick={() => markAsRead(notification._id)}
-                          className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
-                          title="Mark as read"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                          </svg>
-                        </button>
-                      )}
-                      <button
-                        onClick={() => deleteNotification(notification._id)}
-                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Delete notification"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
                     </div>
                   </div>
                 </div>

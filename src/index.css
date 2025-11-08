@@ -229,3 +229,53 @@ input[type="range"] {
   }
 }
 
+/* Custom scrollbar styles for webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) rgba(15, 23, 42, 0.5);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Mobile responsive breakpoints */
+@media (max-width: 474px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 475px) and (max-width: 639px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+}

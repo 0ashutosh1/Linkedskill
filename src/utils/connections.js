@@ -17,15 +17,22 @@ const getAuthHeaders = () => {
 // Get user's connected experts
 export const getMyConnections = async () => {
   try {
+    console.log('🔍 Fetching my connections from API...')
     const response = await fetch(`${API_URL}/connections/my-connections`, {
       headers: getAuthHeaders()
     })
 
+    console.log('📡 Response status:', response.status)
+    
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('❌ Failed to fetch connections:', errorData)
       throw new Error('Failed to fetch connections')
     }
 
     const data = await response.json()
+    console.log('✅ Connections data received:', data)
+    console.log('👥 Number of connections:', data.connections?.length || 0)
     return data.connections || []
   } catch (error) {
     console.error('Error fetching connections:', error)

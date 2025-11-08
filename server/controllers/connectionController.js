@@ -300,9 +300,17 @@ exports.getPendingRequests = async (req, res) => {
 exports.unfollowExpert = async (req, res) => {
   try {
     const { expertId } = req.params
-    const followerId = req.user.sub
+    const userId = req.user.sub
 
-    const connection = await Connection.getConnectionStatus(expertId, followerId)
+    // Try to find connection in both directions
+    // Case 1: Current user is follower, expertId is the expert (student removing expert)
+    let connection = await Connection.getConnectionStatus(expertId, userId)
+    
+    // Case 2: Current user is expert, expertId is the follower (expert removing student)
+    if (!connection) {
+      connection = await Connection.getConnectionStatus(userId, expertId)
+    }
+
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' })
     }
@@ -311,11 +319,11 @@ exports.unfollowExpert = async (req, res) => {
     await connection.deactivate()
 
     res.status(200).json({
-      message: 'Successfully unfollowed expert'
+      message: 'Successfully removed connection'
     })
 
   } catch (error) {
-    console.error('Error unfollowing expert:', error)
+    console.error('Error removing connection:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 }
@@ -326,25 +334,42 @@ exports.getMyConnections = async (req, res) => {
     const followerId = req.user.sub
     const { status = 'accepted', limit = 50, page = 1 } = req.query
 
-    const connections = await Connection.findByFollower(followerId, { status })
+    console.log('🔍 getMyConnections called for followerId:', followerId)
+    console.log('📋 Query params - status:', status, 'limit:', limit, 'page:', page)
+
+    // Don't use the static method, query directly and populate expertId
+    const connections = await Connection.find({
+      followerId,
+      isActive: true,
+      status
+    })
+      .populate('expertId', 'name email')
+      .sort({ lastInteraction: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit))
+
+    console.log('📊 Raw connections found:', connections.length)
 
     // Fetch profile data for each expert to get photoUrl
     const Profile = require('../models/Profile')
     const connectedExpertsPromises = connections.map(async (conn) => {
-      const profile = await Profile.findOne({ userId: conn.expert._id })
+      if (!conn.expertId) {
+        console.error('❌ Connection has no expertId:', conn._id)
+        return null
+      }
+      
+      const profile = await Profile.findOne({ userId: conn.expertId._id })
       return {
-        id: conn.expert._id,
-        name: conn.expert.name,
-        expertise: profile?.designation || conn.expert.designation || 'Expert',
+        id: conn.expertId._id,
+        name: conn.expertId.name,
+        expertise: profile?.designation || conn.expertId.designation || 'Expert',
         photoUrl: profile?.photoUrl || '',
         isOnline: false, // Would need real-time status
         isVerified: true, // Could add verification field to User model
         lastMessage: '', // Would come from chat messages
         lastSeen: conn.lastInteraction,
-        email: conn.expert.email,
-        designation: profile?.designation || conn.expert.designation,
+        email: conn.expertId.email,
+        designation: profile?.designation || conn.expertId.designation,
         areasOfInterest: profile?.areasOfInterest || [],
         connectionId: conn._id,
         connectedAt: conn.connectedAt,
@@ -352,7 +377,9 @@ exports.getMyConnections = async (req, res) => {
       }
     })
 
-    const connectedExperts = await Promise.all(connectedExpertsPromises)
+    const connectedExperts = (await Promise.all(connectedExpertsPromises)).filter(expert => expert !== null)
+
+    console.log('✅ Processed experts:', connectedExperts.length)
 
     const total = await Connection.countDocuments({
       followerId,

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { followExpert, unfollowExpert, getConnectionStatus } from '../utils/connections'
+import { getCurrentUser } from '../utils/auth'
 
 const API_URL = 'http://localhost:4000'
 
@@ -8,22 +9,25 @@ export default function ExpertsPage({ onBack }) {
   const [experts, setExperts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [connectionStatuses, setConnectionStatuses] = useState({}) // Will store { expertId: { isConnected: boolean, status: 'pending'|'accepted'|'rejected'|null, connectionExists: boolean } }
+  const [connectionStatuses, setConnectionStatuses] = useState({})
   const [connectingExperts, setConnectingExperts] = useState(new Set())
+
+  // Memoize current user to avoid recalculation
+  const currentUser = useMemo(() => getCurrentUser(), [])
 
   useEffect(() => {
     fetchExperts()
   }, [])
 
   // Function to refresh connection statuses (can be called when user returns from notifications)
-  const refreshConnectionStatuses = async () => {
+  const refreshConnectionStatuses = useCallback(async () => {
     if (experts.length > 0) {
       const expertIds = experts.map(expert => expert.userId._id)
       await fetchConnectionStatusesBatch(expertIds)
     }
-  }
+  }, [experts])
 
-  const fetchExperts = async () => {
+  const fetchExperts = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken')
       if (!token) {
@@ -31,6 +35,8 @@ export default function ExpertsPage({ onBack }) {
         setLoading(false)
         return
       }
+
+      const currentUserId = currentUser?.id || currentUser?._id
 
       const response = await fetch(`${API_URL}/profile/experts`, {
         headers: {
@@ -41,11 +47,18 @@ export default function ExpertsPage({ onBack }) {
       if (response.ok) {
         const data = await response.json()
         const expertProfiles = data.profiles || []
-        setExperts(expertProfiles)
         
-        // Batch connection status check for all experts at once
-        if (expertProfiles.length > 0) {
-          const expertIds = expertProfiles.map(expert => expert.userId._id)
+        // Filter out the logged-in user
+        const filteredExperts = expertProfiles.filter(expert => {
+          const expertUserId = expert.userId?._id || expert.userId
+          return expertUserId !== currentUserId
+        })
+        
+        setExperts(filteredExperts)
+        
+        // Batch connection status check
+        if (filteredExperts.length > 0) {
+          const expertIds = filteredExperts.map(expert => expert.userId._id || expert.userId)
           await fetchConnectionStatusesBatch(expertIds)
         }
       } else {
@@ -57,15 +70,14 @@ export default function ExpertsPage({ onBack }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentUser])
 
-  // Batch fetch connection statuses to reduce API calls
-  const fetchConnectionStatusesBatch = async (expertIds) => {
+  // Batch fetch connection statuses - memoized
+  const fetchConnectionStatusesBatch = useCallback(async (expertIds) => {
     try {
       const token = localStorage.getItem('authToken')
       if (!token) return
 
-      // Make a single API call to get all connection statuses
       const response = await fetch(`${API_URL}/connections/status/batch`, {
         method: 'POST',
         headers: {
@@ -78,35 +90,14 @@ export default function ExpertsPage({ onBack }) {
       if (response.ok) {
         const statusData = await response.json()
         setConnectionStatuses(statusData.statuses || {})
-      } else {
-        // Fallback to individual calls if batch endpoint not available
-        const statuses = {}
-        for (const expertId of expertIds) {
-          try {
-            const statusData = await getConnectionStatus(expertId)
-            statuses[expertId] = {
-              isConnected: statusData.isConnected,
-              status: statusData.status,
-              connectionExists: statusData.connectionExists
-            }
-          } catch (err) {
-            console.error(`Error checking status for expert ${expertId}:`, err)
-            statuses[expertId] = {
-              isConnected: false,
-              status: null,
-              connectionExists: false
-            }
-          }
-        }
-        setConnectionStatuses(statuses)
       }
     } catch (err) {
       console.error('Error fetching connection statuses:', err)
     }
-  }
+  }, [])
 
-  // Helper function to get button text and state based on connection status
-  const getConnectionButtonInfo = (expertId) => {
+  // Memoized button info to avoid recalculation
+  const getConnectionButtonInfo = useCallback((expertId) => {
     const status = connectionStatuses[expertId] || {}
     
     if (status.isConnected) {
@@ -134,36 +125,24 @@ export default function ExpertsPage({ onBack }) {
         canDisconnect: false
       }
     }
-  }
+  }, [connectionStatuses])
 
-  const handleFollowToggle = async (expertId) => {
-    console.log('handleFollowToggle called with expertId:', expertId)
-    
-    // Prevent duplicate calls - check if already processing this expert
-    if (connectingExperts.has(expertId)) {
-      console.log('Already processing connection for expert:', expertId)
-      return
-    }
+  const handleFollowToggle = useCallback(async (expertId) => {
+    if (connectingExperts.has(expertId)) return
     
     setConnectingExperts(prev => new Set([...prev, expertId]))
     
     try {
       const currentStatus = connectionStatuses[expertId] || {}
-      console.log('Current connection status:', currentStatus)
       
       if (currentStatus.isConnected) {
-        console.log('Unfollowing expert...')
         await unfollowExpert(expertId)
         setConnectionStatuses(prev => ({ 
           ...prev, 
           [expertId]: { isConnected: false, status: null, connectionExists: false } 
         }))
       } else {
-        console.log('Following expert...')
-        const result = await followExpert(expertId)
-        console.log('Follow result:', result)
-        
-        // After sending request, update status to pending
+        await followExpert(expertId)
         setConnectionStatuses(prev => ({ 
           ...prev, 
           [expertId]: { 
@@ -175,13 +154,8 @@ export default function ExpertsPage({ onBack }) {
       }
     } catch (error) {
       console.error('Error toggling connection:', error)
-      console.error('Error details:', error.message, error.stack)
       setError(error.message)
-      
-      // Clear error after 5 seconds
-      setTimeout(() => {
-        setError('')
-      }, 5000)
+      setTimeout(() => setError(''), 5000)
     } finally {
       setConnectingExperts(prev => {
         const newSet = new Set(prev)
@@ -189,7 +163,7 @@ export default function ExpertsPage({ onBack }) {
         return newSet
       })
     }
-  }
+  }, [connectionStatuses, connectingExperts])
 
   if (loading) {
     return (
@@ -260,166 +234,176 @@ export default function ExpertsPage({ onBack }) {
         </p>
       </div>
 
-      {/* Enhanced responsive grid */}
+      {/* Optimized responsive grid with will-change for smooth animations */}
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 
                       gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-8 
                       px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 
-                      max-w-8xl mx-auto">
-        {experts.map((expert, index) => (
-          <div
-            key={expert._id}
-            onClick={() => setSelectedMember(expert)}
-            style={{ animationDelay: `${index * 100}ms` }}
-            className="group relative cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl 
-                       shadow-md hover:shadow-2xl hover:shadow-purple-500/20 
-                       transform transition-all duration-500 hover:scale-105 hover:-translate-y-2 
-                       animate-fadeInUp bg-white border border-gray-100 hover:border-purple-200"
-          >
-            {/* Enhanced responsive card */}
-            <div className="aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] bg-gradient-to-br from-purple-100 via-pink-50 to-purple-100 
-                           flex items-center justify-center relative overflow-hidden">
-              <img 
-                src={expert.photoUrl || "/src/assets/placeholder.svg"} 
-                alt={expert.name || 'Expert'} 
-                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-500 
-                           group-hover:scale-110" 
-              />
-              
-              {/* Enhanced gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-purple-600/95 via-purple-400/60 to-transparent 
-                             opacity-90 group-hover:from-purple-700/95 group-hover:via-purple-500/70 
-                             transition-all duration-500" />
-              
-              {/* Enhanced action buttons */}
-              <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex gap-1 sm:gap-2 
-                             opacity-0 group-hover:opacity-100 transition-all duration-300 transform 
-                             translate-y-2 group-hover:translate-y-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleFollowToggle(expert.userId._id)
-                  }}
-                  disabled={connectingExperts.has(expert.userId._id) || !getConnectionButtonInfo(expert.userId._id).canDisconnect && getConnectionButtonInfo(expert.userId._id).text !== 'Connect'}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold 
-                             transition-all duration-300 backdrop-blur-sm border border-white/20 
-                             hover:scale-105 active:scale-95 ${
-                    getConnectionButtonInfo(expert.userId._id).isConnected
-                      ? 'bg-green-500/30 text-green-100 hover:bg-green-500/40'
-                      : getConnectionButtonInfo(expert.userId._id).text === '⏳ Request Sent'
-                      ? 'bg-orange-500/30 text-orange-100 cursor-not-allowed'
-                      : getConnectionButtonInfo(expert.userId._id).text === '❌ Rejected'
-                      ? 'bg-red-500/30 text-red-100 cursor-not-allowed'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  } ${connectingExperts.has(expert.userId._id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {connectingExperts.has(expert.userId._id) 
-                    ? '...' 
-                    : getConnectionButtonInfo(expert.userId._id).text
-                  }
-                </button>
-                <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 sm:py-1.5 
-                               text-xs sm:text-sm text-white font-semibold border border-white/20">
-                  View Profile
+                      max-w-8xl mx-auto"
+           style={{ contain: 'layout style paint' }}>
+        {experts.map((expert, index) => {
+          const expertId = expert.userId._id
+          const buttonInfo = getConnectionButtonInfo(expertId)
+          const isConnecting = connectingExperts.has(expertId)
+          
+          return (
+            <div
+              key={expert._id}
+              onClick={() => setSelectedMember(expert)}
+              style={{ 
+                animationDelay: `${Math.min(index * 50, 1000)}ms`,
+                willChange: 'transform'
+              }}
+              className="group relative cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl 
+                         shadow-md hover:shadow-2xl hover:shadow-purple-500/20 
+                         transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1
+                         animate-fadeInUp bg-white border border-gray-100 hover:border-purple-200"
+            >
+              {/* Optimized card content */}
+              <div className="aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] bg-gradient-to-br from-purple-100 via-pink-50 to-purple-100 
+                             flex items-center justify-center relative overflow-hidden">
+                <img 
+                  src={expert.photoUrl || "/src/assets/placeholder.svg"} 
+                  alt={expert.name || 'Expert'} 
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
+                  style={{ contentVisibility: 'auto' }}
+                />
+                
+                {/* Optimized gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-purple-600/95 via-purple-400/60 to-transparent 
+                               opacity-90 group-hover:from-purple-700/95 group-hover:via-purple-500/70 
+                               transition-all duration-300" />
+                
+                {/* Optimized action buttons */}
+                <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex gap-1 sm:gap-2 
+                               opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleFollowToggle(expertId)
+                    }}
+                    disabled={isConnecting || (!buttonInfo.canDisconnect && buttonInfo.text !== 'Connect')}
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold 
+                               transition-all duration-200 backdrop-blur-sm border border-white/20 
+                               active:scale-95 ${
+                      buttonInfo.isConnected
+                        ? 'bg-green-500/30 text-green-100 hover:bg-green-500/40'
+                        : buttonInfo.text === '⏳ Request Sent'
+                        ? 'bg-orange-500/30 text-orange-100 cursor-not-allowed'
+                        : buttonInfo.text === '❌ Rejected'
+                        ? 'bg-red-500/30 text-red-100 cursor-not-allowed'
+                        : 'bg-white/20 text-white hover:bg-white/30'
+                    } ${isConnecting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {isConnecting ? '...' : buttonInfo.text}
+                  </button>
+                  <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 sm:py-1.5 
+                                 text-xs sm:text-sm text-white font-semibold border border-white/20">
+                    View
+                  </div>
+                </div>
+                
+                {/* Optimized content section */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-5 transition-transform duration-300">
+                  <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg mb-1 leading-tight truncate">
+                    {expert.name || 'Expert'}
+                  </h3>
+                  <p className="text-pink-200 text-xs sm:text-sm font-semibold mb-1 leading-tight truncate">
+                    {expert.designation || 'Expert Instructor'}
+                  </p>
+                  {expert.areasOfInterest && expert.areasOfInterest.length > 0 && (
+                    <p className="text-pink-100 text-xs opacity-90 leading-tight truncate">
+                      {expert.areasOfInterest.slice(0, 2).join(' • ')}
+                    </p>
+                  )}
                 </div>
               </div>
-              
-              {/* Enhanced content section */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-5 
-                             transform translate-y-0 group-hover:translate-y-[-4px] sm:group-hover:translate-y-[-8px] 
-                             transition-all duration-500">
-                <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg mb-1 leading-tight">
-                  {expert.name || 'Expert'}
-                </h3>
-                <p className="text-pink-200 text-xs sm:text-sm font-semibold mb-1 leading-tight">
-                  {expert.designation || 'Expert Instructor'}
-                </p>
-                {expert.areasOfInterest && expert.areasOfInterest.length > 0 && (
-                  <p className="text-pink-100 text-xs opacity-90 leading-tight">
-                    {expert.areasOfInterest.slice(0, 2).join(' • ')}
-                  </p>
-                )}
-              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* Enhanced responsive modal */}
+      {/* Optimized responsive modal */}
       {selectedMember && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 
-                     p-3 sm:p-4 md:p-6 lg:p-8 animate-fadeIn"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 
+                     p-3 sm:p-4 md:p-6 animate-fadeIn"
           onClick={() => setSelectedMember(null)}
+          style={{ contain: 'layout style' }}
         >
           <div 
             className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl 
-                       max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl w-full 
-                       p-4 sm:p-6 md:p-8 lg:p-10 relative shadow-2xl animate-scaleIn 
+                       max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-4xl w-full 
+                       p-4 sm:p-6 md:p-8 relative shadow-2xl animate-scaleIn 
                        overflow-y-auto max-h-[95vh] sm:max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
+            style={{ willChange: 'transform' }}
           >
-            {/* Enhanced close button */}
+            {/* Close button */}
             <button 
               onClick={() => setSelectedMember(null)}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 
-                         w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 
+                         w-8 h-8 sm:w-9 sm:h-9 
                          bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center 
-                         text-gray-600 text-lg sm:text-xl md:text-2xl 
-                         transition-all duration-300 hover:rotate-90 hover:scale-110 active:scale-95
+                         text-gray-600 text-lg sm:text-xl 
+                         transition-all duration-200 active:scale-95
                          shadow-sm hover:shadow-md"
               aria-label="Close modal"
             >
               ×
             </button>
 
-            {/* Enhanced modal content layout */}
-            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
-              {/* Responsive avatar section */}
-              <div className="w-full sm:w-64 md:w-72 lg:w-64 xl:w-80 flex-shrink-0 mx-auto lg:mx-0">
+            {/* Modal content layout */}
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
+              {/* Avatar section */}
+              <div className="w-full sm:w-64 md:w-72 lg:w-64 flex-shrink-0 mx-auto lg:mx-0">
                 <div className="relative">
                   <div className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden 
                                   border-2 sm:border-4 border-purple-200 shadow-lg 
-                                  ring-2 ring-gray-100 hover:ring-indigo-200 
+                                  ring-2 ring-gray-100 
                                   transition-all duration-300">
                     <img 
                       src={selectedMember.photoUrl || "/src/assets/placeholder.svg"} 
-                      alt={selectedMember.name || 'Expert'} 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                      alt={selectedMember.name || 'Expert'}
+                      loading="lazy"
+                      className="w-full h-full object-cover" 
                     />
                   </div>
-                  {/* Enhanced rating badge */}
+                  {/* Rating badge */}
                   <div className="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 
                                   bg-gradient-to-r from-indigo-500 to-purple-600 text-white 
-                                  p-2 sm:p-3 md:p-4 rounded-full shadow-lg 
-                                  ring-2 ring-white transform hover:scale-110 transition-transform">
+                                  p-2 sm:p-3 rounded-full shadow-lg 
+                                  ring-2 ring-white">
                     <span className="text-xs sm:text-sm font-bold">★ 5.0</span>
                   </div>
                 </div>
               </div>
 
-              {/* Enhanced content section */}
-              <div className="flex-1 text-center lg:text-left">
-                {/* Enhanced badge */}
+              {/* Content section */}
+              <div className="flex-1 text-center lg:text-left"
+                   style={{ contain: 'layout paint' }}>
+                {/* Badge */}
                 <div className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white 
                                px-3 sm:px-4 py-1 sm:py-1.5 rounded-full 
                                text-xs sm:text-sm font-semibold mb-3 sm:mb-4
-                               shadow-lg hover:shadow-xl transition-shadow">
+                               shadow-lg">
                   Expert Instructor
                 </div>
                 
-                {/* Responsive heading */}
-                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white 
+                {/* Heading */}
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white 
                                mb-2 leading-tight">
                   {selectedMember.name || 'Expert'}
                 </h2>
                 
-                {/* Responsive designation */}
+                {/* Designation */}
                 <p className="text-purple-600 font-semibold text-sm sm:text-base md:text-lg 
                               mb-3 sm:mb-4">
                   {selectedMember.designation || 'Expert Instructor'}
                 </p>
                 
-                {/* Enhanced responsive contact information */}
+                {/* Contact information */}
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 mb-4 
                                text-xs sm:text-sm text-gray-600 justify-center lg:justify-start">
                   {selectedMember.email && (
@@ -445,7 +429,7 @@ export default function ExpertsPage({ onBack }) {
                   )}
                 </div>
 
-                {/* Enhanced areas of interest */}
+                {/* Areas of interest */}
                 {selectedMember.areasOfInterest && selectedMember.areasOfInterest.length > 0 && (
                   <div className="mb-4 sm:mb-6">
                     <h4 className="text-sm sm:text-base font-semibold text-gray-700 mb-2 sm:mb-3 
@@ -458,16 +442,14 @@ export default function ExpertsPage({ onBack }) {
                               className="px-2 sm:px-3 py-1 sm:py-1.5 
                                          bg-purple-100 hover:bg-purple-200 text-purple-700 
                                          rounded-full text-xs sm:text-sm font-medium
-                                         transform hover:scale-105 transition-all duration-200
-                                         shadow-sm hover:shadow-md">
+                                         transition-colors duration-200
+                                         shadow-sm">
                           {interest}
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Enhanced professional info */}
                 <div className="mb-4 sm:mb-6 text-center lg:text-left">
                   {selectedMember.occupation && (
                     <div className="bg-gray-50 rounded-lg p-3 sm:p-4">

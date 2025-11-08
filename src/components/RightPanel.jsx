@@ -17,7 +17,8 @@ export default function RightPanel({
   onClassUpdate,
   userPhotoUrl = '',
   userName = '',
-  onPhotoUpdate
+  onPhotoUpdate,
+  onConnectionRemoved
 }){
   const user = getCurrentUser()
   // Use userName prop if available, otherwise fall back to token name
@@ -103,6 +104,7 @@ export default function RightPanel({
             onStudentProfileClick={onStudentProfileClick}
             upcomingClasses={upcomingClasses}
             onClassUpdate={onClassUpdate}
+            onConnectionRemoved={onConnectionRemoved}
           />
         ) : (
           <ConnectedExperts 
@@ -110,6 +112,7 @@ export default function RightPanel({
             onChatClick={onExpertChatClick}
             onProfileClick={onExpertProfileClick}
             loading={connectionsLoading}
+            onConnectionRemoved={onConnectionRemoved}
           />
         )}
       </div>

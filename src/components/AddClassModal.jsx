@@ -18,6 +18,8 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
   const [thumbnailFile, setThumbnailFile] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
+  const [showCustomCategory, setShowCustomCategory] = useState(false)
+  const [customCategoryName, setCustomCategoryName] = useState('')
 
   // Fetch categories when modal opens
   useEffect(() => {
@@ -53,11 +55,21 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
 
   const handleCategoryChange = (e) => {
     const selectedCategoryId = e.target.value
-    setFormData({ ...formData, categoryId: selectedCategoryId, subCategoryId: '' })
-    if (selectedCategoryId) {
-      fetchSubCategories(selectedCategoryId)
-    } else {
+    
+    // Check if "Other" option is selected
+    if (selectedCategoryId === 'other') {
+      setShowCustomCategory(true)
+      setFormData({ ...formData, categoryId: '', subCategoryId: '' })
       setSubcategories([])
+    } else {
+      setShowCustomCategory(false)
+      setCustomCategoryName('')
+      setFormData({ ...formData, categoryId: selectedCategoryId, subCategoryId: '' })
+      if (selectedCategoryId) {
+        fetchSubCategories(selectedCategoryId)
+      } else {
+        setSubcategories([])
+      }
     }
   }
 
@@ -100,6 +112,41 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
         return
       }
 
+      // Validate custom category if "Other" is selected
+      if (showCustomCategory && !customCategoryName.trim()) {
+        alert('Please enter a custom category name')
+        return
+      }
+
+      let categoryIdToUse = formData.categoryId
+
+      // If custom category is entered, create it first
+      if (showCustomCategory && customCategoryName.trim()) {
+        try {
+          const categoryResponse = await fetch('http://localhost:4000/categories', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: customCategoryName.trim() })
+          })
+
+          if (categoryResponse.ok) {
+            const categoryData = await categoryResponse.json()
+            categoryIdToUse = categoryData.category._id || categoryData.category.id
+          } else {
+            console.error('Failed to create custom category')
+            alert('Failed to create custom category. Proceeding without category.')
+            categoryIdToUse = undefined
+          }
+        } catch (categoryError) {
+          console.error('Error creating custom category:', categoryError)
+          alert('Error creating custom category. Proceeding without category.')
+          categoryIdToUse = undefined
+        }
+      }
+
       // Combine date and time into a single DateTime for startTime
       const startTime = new Date(`${formData.date}T${formData.time}`)
 
@@ -111,12 +158,10 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
         startTime: startTime.toISOString(), // New required field
         duration: formData.duration, // Use form duration
         image: '', // Will be updated after thumbnail upload
-        categoryId: formData.categoryId || undefined,
+        categoryId: categoryIdToUse || undefined,
         subCategoryId: formData.subCategoryId || undefined,
         liveUrl: '' // Optional live streaming URL
       }
-
-      console.log('Sending class data:', classData)
 
       // Send to backend API using the classAPI utility
       const result = await classAPI.createClass(classData)
@@ -136,9 +181,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
             body: formData
           })
 
-          if (uploadResponse.ok) {
-            console.log('Thumbnail uploaded successfully')
-          } else {
+          if (!uploadResponse.ok) {
             console.error('Failed to upload thumbnail')
           }
         } catch (uploadError) {
@@ -149,7 +192,6 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
       }
 
       alert('Class created successfully! 🎉')
-      console.log('Created class:', result)
       
       // Call the onClassCreated callback to refresh data
       if (onClassCreated) {
@@ -171,6 +213,8 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
       setSubcategories([])
       setThumbnailFile(null)
       setThumbnailPreview(null)
+      setShowCustomCategory(false)
+      setCustomCategoryName('')
     } catch (error) {
       console.error('Error creating class:', error)
       alert('Failed to create class. Please check console for details.')
@@ -285,7 +329,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               Category
             </label>
             <select
-              value={formData.categoryId}
+              value={showCustomCategory ? 'other' : formData.categoryId}
               onChange={handleCategoryChange}
               disabled={loading}
               className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300 disabled:bg-slate-700/30 disabled:cursor-not-allowed"
@@ -294,11 +338,29 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
               {categories.map((cat) => (
                 <option key={cat._id} value={cat._id}>{cat.name}</option>
               ))}
+              <option value="other">Other (Custom Category)</option>
             </select>
             {loading && (
               <p className="text-sm text-gray-400 mt-1">Loading categories...</p>
             )}
           </div>
+
+          {/* Custom Category Input */}
+          {showCustomCategory && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">
+                Custom Category Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={customCategoryName}
+                onChange={(e) => setCustomCategoryName(e.target.value)}
+                placeholder="Enter your custom category"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base bg-slate-700/50 border-2 border-slate-600/50 text-gray-200 placeholder-gray-400 rounded-xl focus:border-indigo-400/50 focus:outline-none transition-all duration-300"
+              />
+              <p className="text-xs text-gray-400 mt-1">This will be saved as a new category</p>
+            </div>
+          )}
 
           {/* Subcategory Dropdown */}
           <div>

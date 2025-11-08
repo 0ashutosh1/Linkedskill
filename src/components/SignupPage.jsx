@@ -83,15 +83,32 @@ export default function SignupPage({ onSignup, onSwitchToLogin }) {
 
       // Store token and user data
       localStorage.setItem('authToken', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      
+      // Find the selected role name from the roles array
+      const selectedRole = roles.find(r => r._id === formData.roleId)
+      
+      // Store user with role information
+      const userWithRole = {
+        ...data.user,
+        role: {
+          id: formData.roleId,
+          name: selectedRole?.name || 'student' // fallback to student
+        }
+      }
+      localStorage.setItem('user', JSON.stringify(userWithRole))
       
       // IMPORTANT: Remove onboarding flag for new users
       localStorage.removeItem('onboardingComplete')
-      console.log('New signup - removed onboardingComplete flag')
+      
+      // Add role name to the data being passed
+      const dataWithRole = {
+        ...data,
+        user: userWithRole
+      }
       
       // Trigger onboarding flow
       if (onSignup) {
-        onSignup(data)
+        onSignup(dataWithRole)
       }
 
     } catch (error) {

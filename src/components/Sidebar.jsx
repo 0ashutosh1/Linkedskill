@@ -2,10 +2,12 @@ import React from 'react'
 import logo from '../assets/LinkedSkill.jpg'
 import { getCurrentUser } from '../utils/auth'
 
-export default function Sidebar({ onLogoClick, onFriendClick, onNavClick, onLogout }){
+export default function Sidebar({ onLogoClick, onFriendClick, onNavClick, onLogout, userRole }){
   const user = getCurrentUser()
-  const isExpert = user?.role?.name === 'expert'
-  const isStudent = user?.role?.name === 'student'
+  // Use userRole prop as priority, then fall back to getCurrentUser
+  const effectiveUserRole = userRole || user?.role?.name
+  const isExpert = effectiveUserRole === 'expert'
+  const isStudent = effectiveUserRole === 'student'
 
   return (
     <div className="py-3 sm:py-4 lg:py-6 h-full flex flex-col">
@@ -40,13 +42,16 @@ export default function Sidebar({ onLogoClick, onFriendClick, onNavClick, onLogo
         <NavItem 
           label="Dashboard" 
           onClick={() => onNavClick && onNavClick('home')} 
-          svg={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M3 13h4V3H3v10zM3 17h4v-2H3v2zM9 17h8V9H9v8zM9 7h8V3H9v4z" /></svg>} 
+          svg={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" /></svg>} 
         />
-        <NavItem 
-          label="Experts" 
-          onClick={() => onNavClick && onNavClick('experts')} 
-          svg={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a2 2 0 11-4 0 2 2 0 014 0z" /><path d="M6 8a3 3 0 100-6 3 3 0 000 6zM6 10a4 4 0 00-4 4v1h8v-1a4 4 0 00-4-4z" /></svg>} 
-        />
+        {/* Show Experts only for non-expert users (students) */}
+        {!isExpert && (
+          <NavItem 
+            label="Experts" 
+            onClick={() => onNavClick && onNavClick('experts')} 
+            svg={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a2 2 0 11-4 0 2 2 0 014 0z" /><path d="M6 8a3 3 0 100-6 3 3 0 000 6zM6 10a4 4 0 00-4 4v1h8v-1a4 4 0 00-4-4z" /></svg>} 
+          />
+        )}
         {/* Show Add Class only for experts */}
         {isExpert && (
           <NavItem 

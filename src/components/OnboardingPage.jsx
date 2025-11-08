@@ -106,9 +106,7 @@ export default function OnboardingPage({ onComplete }) {
       if (!formData.education.trim()) {
         newErrors.education = 'Please enter your education'
       }
-      if (!formData.designation.trim()) {
-        newErrors.designation = 'Please enter your designation/title'
-      }
+      // Designation is now optional - no validation needed
     }
 
     setErrors(newErrors)
@@ -421,20 +419,15 @@ export default function OnboardingPage({ onComplete }) {
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Designation/Title <span className="text-red-500">*</span>
+          Designation/Title (Optional)
         </label>
         <input
           type="text"
           value={formData.designation}
           onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
           placeholder="e.g., Software Engineer, Student, etc."
-          className={`w-full px-4 py-3 text-gray-900 bg-white border-2 ${
-            errors.designation ? 'border-red-500' : 'border-gray-200'
-          } rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300`}
+          className="w-full px-4 py-3 text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300"
         />
-        {errors.designation && (
-          <p className="text-red-500 text-xs mt-1">{errors.designation}</p>
-        )}
       </div>
 
       <div>

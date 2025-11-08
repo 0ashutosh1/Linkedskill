@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { CompactCountdownTimer } from './CountdownTimer'
 import { classAPI } from '../utils/classAPI'
 import { createMeeting } from '../utils/videoSdk'
+import { getCurrentUser } from '../utils/auth'
 
 const API_URL = 'http://localhost:4000'
 
@@ -92,17 +93,12 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         return
       }
 
-      console.log('Fetching profile...') // Debug log
-
       const response = await fetch(`${API_URL}/profile/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
-      console.log('Profile fetch response status:', response.status) // Debug log
-
       if (response.ok) {
         const data = await response.json()
-        console.log('Profile data received:', data) // Debug log
         setProfile(data.profile)
         setFormData({
           name: data.profile.name || '',
@@ -117,7 +113,6 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
           photoUrl: data.profile.photoUrl || ''
         })
       } else if (response.status === 404) {
-        console.log('Profile not found, will create new one on save') // Debug log
         setProfile(null)
         // Check if there's user data to pre-populate
         try {
@@ -131,11 +126,10 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
             }))
           }
         } catch (e) {
-          console.log('No user data to pre-populate')
+          // No user data available
         }
       } else {
         const errorData = await response.json()
-        console.log('Profile fetch error:', errorData) // Debug log
         setMessage({ type: 'error', text: errorData.error || 'Failed to load profile' })
       }
     } catch (error) {
@@ -169,7 +163,6 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
           return (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
         })
         
-        console.log('📚 My Classes (created + registered):', relevantClasses.length)
         setMyClasses(relevantClasses)
       }
     } catch (error) {
@@ -265,10 +258,6 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         return
       }
 
-      console.log('Saving profile with data:', formData) // Debug log
-      console.log('Using token:', token?.substring(0, 20) + '...') // Debug log (partial token)
-      console.log('API URL:', `${API_URL}/profile`) // Debug log
-
       const response = await fetch(`${API_URL}/profile`, {
         method: 'PUT',
         headers: {
@@ -278,11 +267,8 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         body: JSON.stringify(formData)
       })
 
-      console.log('Response status:', response.status) // Debug log
-
       if (response.ok) {
         const data = await response.json()
-        console.log('Success response:', data) // Debug log
         setProfile(data.profile || data)
         setMessage({ type: 'success', text: 'Profile updated successfully!' })
         setIsEditing(false)
@@ -299,10 +285,8 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         let errorMessage = 'Failed to update profile'
         try {
           const errorData = await response.json()
-          console.log('Error response:', errorData) // Debug log
           errorMessage = errorData.message || errorData.error || `Server error: ${response.status}`
         } catch (parseError) {
-          console.log('Could not parse error response:', parseError) // Debug log
           errorMessage = `Server error: ${response.status} ${response.statusText}`
         }
         setMessage({ type: 'error', text: errorMessage })
@@ -754,7 +738,7 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">DESIGNATION</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">DESIGNATION (Optional)</label>
                         <input
                           type="text"
                           value={formData.designation}
@@ -1229,27 +1213,30 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                             )}
                           </div>
                           
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => deleteClass(classItem._id)}
-                              className="p-2 text-gray-400 hover:text-red-500 transition"
-                              title="Delete class"
-                            >
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V7zM12 7a1 1 0 012 0v4a1 1 0 11-2 0V7z" clipRule="evenodd" />
-                              </svg>
-                            </button>
-                            <button 
-                              onClick={() => handleClassEdit(classItem)}
-                              className="p-2 text-gray-400 hover:text-blue-500 transition"
-                              title="Edit class"
-                            >
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                              </svg>
-                            </button>
-                          </div>
+                          {/* Only show edit/delete buttons if user is an expert */}
+                          {getCurrentUser()?.role?.name === 'expert' && (
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => deleteClass(classItem._id)}
+                                className="p-2 text-gray-400 hover:text-red-500 transition"
+                                title="Delete class"
+                              >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V7zM12 7a1 1 0 012 0v4a1 1 0 11-2 0V7z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                              <button 
+                                onClick={() => handleClassEdit(classItem)}
+                                className="p-2 text-gray-400 hover:text-blue-500 transition"
+                                title="Edit class"
+                              >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
