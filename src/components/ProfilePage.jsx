@@ -21,7 +21,9 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
     designation: '',
     linkedin: '',
     website: '',
-    photoUrl: ''
+    photoUrl: '',
+    age: '',
+    gender: ''
   })
   const [message, setMessage] = useState({ type: '', text: '' })
   const [myClasses, setMyClasses] = useState([])
@@ -62,7 +64,9 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         designation: passedProfile.designation || '',
         linkedin: passedProfile.linkedin || '',
         website: passedProfile.website || '',
-        photoUrl: passedProfile.photoUrl || ''
+        photoUrl: passedProfile.photoUrl || '',
+        age: passedProfile.age || '',
+        gender: passedProfile.gender || ''
       })
       setLoading(false)
     }
@@ -82,7 +86,9 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         designation: passedProfile.designation || '',
         linkedin: passedProfile.linkedin || '',
         website: passedProfile.website || '',
-        photoUrl: passedProfile.photoUrl || ''
+        photoUrl: passedProfile.photoUrl || '',
+        age: passedProfile.age || '',
+        gender: passedProfile.gender || ''
       })
     }
   }, [passedProfile, isOwnProfile])
@@ -754,6 +760,34 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">AGE</label>
+                      <input
+                        type="number"
+                        min="13"
+                        max="120"
+                        value={formData.age}
+                        onChange={(e) => handleInputChange('age', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter your age"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">GENDER</label>
+                      <select
+                        value={formData.gender}
+                        onChange={(e) => handleInputChange('gender', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="">Select gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1">LINKEDIN</label>
                       <input
                         type="url"
@@ -897,6 +931,14 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                     <div>
                       <span className="text-gray-400 font-medium">PHONE</span>
                       <p className="text-gray-200">{profile?.phoneNo || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-medium">AGE</span>
+                      <p className="text-gray-200">{profile?.age || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-medium">GENDER</span>
+                      <p className="text-gray-200">{profile?.gender || 'Not specified'}</p>
                     </div>
                     <div>
                       <span className="text-gray-400 font-medium">LINKEDIN</span>
@@ -1407,21 +1449,26 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                             <div className="flex gap-2">
                               <button 
                                 onClick={() => deleteClass(classItem._id)}
-                                className="p-2 text-gray-400 hover:text-red-500 transition"
+                                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 
+                                         border border-red-500/30 hover:border-red-500/50 rounded-lg transition-all duration-200 
+                                         hover:scale-110 active:scale-95 group"
                                 title="Delete class"
                               >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V7zM12 7a1 1 0 012 0v4a1 1 0 11-2 0V7z" clipRule="evenodd" />
+                                <svg className="w-5 h-5 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                               </button>
                               <button 
                                 onClick={() => handleClassEdit(classItem)}
-                                className="p-2 text-gray-400 hover:text-blue-500 transition"
+                                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 
+                                         border border-blue-500/30 hover:border-blue-500/50 rounded-lg transition-all duration-200 
+                                         hover:scale-110 active:scale-95 group"
                                 title="Edit class"
                               >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </button>
                             </div>

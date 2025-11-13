@@ -67,6 +67,26 @@ export const classAPI = {
     return response.json()
   },
 
+  // Get personalized classes based on user interests/hobbies
+  getPersonalizedClasses: async () => {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+
+    const response = await fetch(`${API_URL}/classes/personalized/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch personalized classes')
+    }
+
+    return response.json()
+  },
+
   // Create a new class
   createClass: async (classData) => {
     const token = localStorage.getItem('authToken')

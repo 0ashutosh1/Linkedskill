@@ -13,6 +13,9 @@ router.post('/:id/upload-thumbnail', authenticate, uploadThumbnail.single('thumb
 // Get all classes
 router.get('/', classController.getAllClasses);
 
+// Get personalized classes based on user interests (protected route) - MUST BE BEFORE /:id
+router.get('/personalized/me', authenticate, classController.getPersonalizedClasses);
+
 // Get classes where current user is registered (protected route) - MUST BE BEFORE /:id
 router.get('/registered/me', authenticate, classController.getRegisteredClasses);
 

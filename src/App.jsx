@@ -90,10 +90,42 @@ export default function App() {
     }
   }, [])
 
-  // Fetch upcoming classes for right panel
+  // Fetch upcoming classes for right panel with personalization
   const fetchUpcomingClasses = useCallback(async () => {
     setClassesLoading(true)
     try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const currentUserId = currentUser.sub || currentUser._id || currentUser.id
+      const now = new Date()
+      
+      // First try to get personalized classes
+      try {
+        const personalizedData = await classAPI.getPersonalizedClasses()
+        
+        if (personalizedData.personalized && personalizedData.classes.length > 0) {
+          // Filter for truly upcoming classes (future dates only)
+          // Exclude classes created by the current expert
+          const upcoming = personalizedData.classes.filter(cls => {
+            const classDate = new Date(cls.startTime || cls.date)
+            const isUpcoming = (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+            
+            // Check if current user is the class creator
+            const isCreator = cls.userId?._id?.toString() === currentUserId?.toString() || 
+                             cls.userId?.toString() === currentUserId?.toString()
+            
+            // Show only if it's upcoming AND user is not the creator
+            return isUpcoming && !isCreator
+          }).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date))
+          
+          setUpcomingClasses(upcoming)
+          setClassesLoading(false)
+          return
+        }
+      } catch (personalizedError) {
+        console.warn('Could not fetch personalized upcoming classes, falling back to all classes')
+      }
+      
+      // Fallback: Fetch all classes
       const response = await fetch('http://localhost:4000/classes', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -102,12 +134,9 @@ export default function App() {
       
       if (response.ok) {
         const data = await response.json()
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-        const currentUserId = currentUser.sub || currentUser._id || currentUser.id
         
         // Filter for truly upcoming classes (future dates only)
         // Exclude classes created by the current expert
-        const now = new Date()
         const upcoming = data.classes?.filter(cls => {
           const classDate = new Date(cls.startTime || cls.date)
           const isUpcoming = (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
@@ -155,20 +184,67 @@ export default function App() {
     }
   }, [])
 
-  // Fetch classes by category - Dynamic approach
+  // Fetch classes by category - Dynamic approach with personalization
   const fetchClassesByCategories = useCallback(async () => {
     setCategoriesLoading(true)
     try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const currentUserId = currentUser.sub || currentUser._id || currentUser.id
+      const now = new Date()
+      
+      // First try to get personalized classes based on user interests
+      try {
+        const personalizedData = await classAPI.getPersonalizedClasses()
+        
+        if (personalizedData.personalized && personalizedData.classes.length > 0) {
+          // User has interests and we found matching classes
+          console.log(`📌 Showing ${personalizedData.classes.length} personalized classes based on interests:`, personalizedData.interests)
+          
+          // Group personalized classes by category
+          const classesGroupedByCategory = personalizedData.classes.reduce((acc, cls) => {
+            const categoryName = cls.categoryId?.name || 'General'
+            if (!acc[categoryName]) {
+              acc[categoryName] = []
+            }
+            acc[categoryName].push(cls)
+            return acc
+          }, {})
+          
+          // Filter out past classes and classes created by current expert
+          const categoriesWithClassesData = Object.entries(classesGroupedByCategory).map(([categoryName, classes]) => {
+            const filteredClasses = classes.filter(cls => {
+              const classDate = new Date(cls.startTime || cls.date)
+              const isUpcoming = (cls.status === 'scheduled' || cls.status === 'live') && classDate > now
+              
+              // Check if current user is the class creator
+              const isCreator = cls.userId?._id?.toString() === currentUserId?.toString() || 
+                               cls.userId?.toString() === currentUserId?.toString()
+              
+              // Show only if it's upcoming AND user is not the creator
+              return isUpcoming && !isCreator
+            }).map(cls => classAPI.transformClassData(cls, categoryName))
+            
+            return {
+              name: categoryName,
+              classes: filteredClasses
+            }
+          }).filter(category => category.classes.length > 0)
+          
+          setCategoriesWithClasses(categoriesWithClassesData)
+          setCategoriesLoading(false)
+          return
+        }
+      } catch (personalizedError) {
+        console.warn('Could not fetch personalized classes, falling back to all categories:', personalizedError)
+      }
+      
+      // Fallback: Fetch all categories and their classes
       // First get all categories
       const categoriesResponse = await fetch('http://localhost:4000/categories')
       if (!categoriesResponse.ok) {
         throw new Error('Failed to fetch categories')
       }
       const categoriesData = await categoriesResponse.json()
-      
-      const now = new Date()
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-      const currentUserId = currentUser.sub || currentUser._id || currentUser.id
       
       // Then fetch classes for each category in parallel
       const categoryPromises = categoriesData.categories.map(async (category) => {

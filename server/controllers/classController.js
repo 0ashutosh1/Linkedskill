@@ -110,6 +110,77 @@ exports.getAllClasses = async (req, res) => {
   }
 };
 
+// Get personalized classes based on user's interests and hobbies
+exports.getPersonalizedClasses = async (req, res) => {
+  try {
+    const userId = req.user.sub; // Get authenticated user ID
+    
+    // Get user's profile with interests
+    const Profile = require('../models/Profile');
+    const Category = require('../models/Category');
+    
+    const userProfile = await Profile.findOne({ userId });
+    
+    if (!userProfile || !userProfile.areasOfInterest || userProfile.areasOfInterest.length === 0) {
+      // If no interests, return all upcoming classes
+      const allClasses = await Class.find({ status: { $in: ['scheduled', 'live'] } })
+        .populate('userId', 'name email')
+        .populate('attendees', 'name email')
+        .populate('categoryId', 'name description')
+        .populate('subCategoryId', 'name description')
+        .sort({ startTime: 1 });
+      
+      return res.json({ classes: allClasses, personalized: false });
+    }
+    
+    // Get categories that match user's interests (case-insensitive)
+    const userInterests = userProfile.areasOfInterest.map(interest => 
+      new RegExp(interest.trim(), 'i')
+    );
+    
+    const matchingCategories = await Category.find({
+      name: { $in: userInterests }
+    });
+    
+    const matchingCategoryIds = matchingCategories.map(cat => cat._id);
+    
+    // Find classes that match user's interests or are in matching categories
+    const personalizedClasses = await Class.find({
+      $and: [
+        { status: { $in: ['scheduled', 'live'] } },
+        {
+          $or: [
+            { categoryId: { $in: matchingCategoryIds } },
+            // Also search in class title and description for interest keywords
+            {
+              $or: userProfile.areasOfInterest.map(interest => ({
+                $or: [
+                  { title: { $regex: interest, $options: 'i' } },
+                  { description: { $regex: interest, $options: 'i' } }
+                ]
+              }))
+            }
+          ]
+        }
+      ]
+    })
+      .populate('userId', 'name email')
+      .populate('attendees', 'name email')
+      .populate('categoryId', 'name description')
+      .populate('subCategoryId', 'name description')
+      .sort({ startTime: 1 });
+    
+    res.json({ 
+      classes: personalizedClasses, 
+      personalized: true,
+      interests: userProfile.areasOfInterest 
+    });
+  } catch (err) {
+    console.error('Error fetching personalized classes:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
 // Get a single class by ID
 exports.getClassById = async (req, res) => {
   try {

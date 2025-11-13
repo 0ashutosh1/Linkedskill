@@ -20,6 +20,7 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
   const [showCustomCategory, setShowCustomCategory] = useState(false)
   const [customCategoryName, setCustomCategoryName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch categories when modal opens
   useEffect(() => {
@@ -103,18 +104,27 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      return
+    }
+    
+    setIsSubmitting(true)
+    
     try {
       // Get the auth token from localStorage
       const token = localStorage.getItem('authToken')
       
       if (!token) {
         alert('Please login first to create a class')
+        setIsSubmitting(false)
         return
       }
 
       // Validate custom category if "Other" is selected
       if (showCustomCategory && !customCategoryName.trim()) {
         alert('Please enter a custom category name')
+        setIsSubmitting(false)
         return
       }
 
@@ -170,15 +180,15 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
       if (thumbnailFile && result.class?._id) {
         setUploadingThumbnail(true)
         try {
-          const formData = new FormData()
-          formData.append('thumbnail', thumbnailFile)
+          const formDataUpload = new FormData()
+          formDataUpload.append('thumbnail', thumbnailFile)
 
           const uploadResponse = await fetch(`http://localhost:4000/classes/${result.class._id}/upload-thumbnail`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
             },
-            body: formData
+            body: formDataUpload
           })
 
           if (!uploadResponse.ok) {
@@ -192,16 +202,6 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
       }
 
       alert('Class created successfully! 🎉')
-      
-      // Close modal first
-      onClose()
-      
-      // Then call the onClassCreated callback to refresh data (with slight delay)
-      if (onClassCreated) {
-        setTimeout(() => {
-          onClassCreated()
-        }, 100)
-      }
       
       // Reset form
       setFormData({
@@ -218,20 +218,30 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
       setThumbnailPreview(null)
       setShowCustomCategory(false)
       setCustomCategoryName('')
+      
+      // Close modal
+      onClose()
+      
+      // Then call the onClassCreated callback to refresh data (with slight delay)
+      if (onClassCreated) {
+        setTimeout(() => {
+          onClassCreated()
+        }, 100)
+      }
     } catch (error) {
       console.error('Error creating class:', error)
       alert('Failed to create class. Please check console for details.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <div 
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
-      onClick={onClose}
     >
       <div 
         className="bg-slate-800 border border-slate-700/50 rounded-2xl md:rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl animate-scaleIn max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         <button 
           onClick={onClose}
@@ -422,14 +432,26 @@ export default function AddClassModal({ isOpen, onClose, onClassCreated }) {
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-3 md:pt-4">
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-slate-700 to-indigo-700 border border-indigo-500/30 text-gray-100 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300 hover:scale-105"
+              disabled={isSubmitting || uploadingThumbnail}
+              className="flex-1 bg-gradient-to-r from-slate-700 to-indigo-700 border border-indigo-500/30 text-gray-100 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
-              Submit Class
+              {isSubmitting || uploadingThumbnail ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                  <span>{uploadingThumbnail ? 'Uploading Image...' : 'Creating Class...'}</span>
+                </>
+              ) : (
+                'Submit Class'
+              )}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="sm:px-6 border-2 border-slate-600/50 bg-slate-700/30 text-gray-300 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:bg-slate-600/30 transition-all duration-300"
+              disabled={isSubmitting || uploadingThumbnail}
+              className="sm:px-6 border-2 border-slate-600/50 bg-slate-700/30 text-gray-300 py-2.5 md:py-3 text-sm md:text-base rounded-xl font-semibold hover:bg-slate-600/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

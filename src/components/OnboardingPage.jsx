@@ -12,6 +12,8 @@ export default function OnboardingPage({ onComplete }) {
     education: '',
     designation: '',
     occupation: '',
+    age: '',
+    gender: '',
     customInterest: '',
     customHobby: ''
   })
@@ -103,6 +105,15 @@ export default function OnboardingPage({ onComplete }) {
     }
 
     if (step === 3) {
+      if (!formData.age || formData.age < 13 || formData.age > 120) {
+        newErrors.age = 'Please enter a valid age (13-120)'
+      }
+      if (!formData.gender) {
+        newErrors.gender = 'Please select your gender'
+      }
+    }
+
+    if (step === 4) {
       if (!formData.education.trim()) {
         newErrors.education = 'Please enter your education'
       }
@@ -115,7 +126,7 @@ export default function OnboardingPage({ onComplete }) {
 
   const handleNext = () => {
     if (validateStep()) {
-      if (step < 3) {
+      if (step < 4) {
         setStep(step + 1)
       } else {
         handleSubmit()
@@ -131,7 +142,7 @@ export default function OnboardingPage({ onComplete }) {
   }
 
   const handleSkip = () => {
-    if (step < 3) {
+    if (step < 4) {
       setStep(step + 1)
       setErrors({})
     } else {
@@ -159,7 +170,9 @@ export default function OnboardingPage({ onComplete }) {
         education: formData.education,
         designation: formData.designation,
         occupation: formData.occupation || formData.designation,
-        areasOfInterest: allInterests
+        areasOfInterest: allInterests,
+        age: formData.age ? parseInt(formData.age) : null,
+        gender: formData.gender
       }
 
       const response = await fetch(`${API_URL}/profile`, {
@@ -191,7 +204,7 @@ export default function OnboardingPage({ onComplete }) {
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
-      {[1, 2, 3].map((s) => (
+      {[1, 2, 3, 4].map((s) => (
         <div key={s} className="flex items-center">
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 ${
@@ -210,7 +223,7 @@ export default function OnboardingPage({ onComplete }) {
               s
             )}
           </div>
-          {s < 3 && (
+          {s < 4 && (
             <div
               className={`w-16 h-1 transition-all duration-300 ${
                 s < step ? 'bg-green-500' : 'bg-gray-200'
@@ -389,6 +402,76 @@ export default function OnboardingPage({ onComplete }) {
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-800 mb-3">Personal Information</h2>
+        <p className="text-gray-600">Help us personalize your experience better.</p>
+      </div>
+
+      {/* Age Input */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Age <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          min="13"
+          max="120"
+          value={formData.age}
+          onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+          placeholder="Enter your age"
+          className={`w-full px-4 py-3 text-gray-900 bg-white border-2 ${
+            errors.age ? 'border-red-500' : 'border-gray-200'
+          } rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-300`}
+        />
+        {errors.age && (
+          <p className="text-red-500 text-xs mt-1">{errors.age}</p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">You must be at least 13 years old to use this platform</p>
+      </div>
+
+      {/* Gender Selection */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Gender <span className="text-red-500">*</span>
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {['Male', 'Female', 'Other', 'Prefer not to say'].map((gender) => (
+            <button
+              key={gender}
+              type="button"
+              onClick={() => setFormData({ ...formData, gender })}
+              className={`p-4 rounded-xl border-2 font-medium transition-all duration-300 ${
+                formData.gender === gender
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-600 scale-105 shadow-lg'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:shadow-md'
+              }`}
+            >
+              {gender}
+            </button>
+          ))}
+        </div>
+        {errors.gender && (
+          <p className="text-red-500 text-xs mt-1">{errors.gender}</p>
+        )}
+      </div>
+
+      {/* Info Box */}
+      <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+        <div className="flex items-start gap-3">
+          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-sm text-blue-800">
+            <p className="font-semibold mb-1">Privacy Note</p>
+            <p className="text-blue-700">This information helps us provide age-appropriate content and better recommendations. Your data is secure and private.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-3">Tell us about yourself</h2>
         <p className="text-gray-600">Help us understand your professional background.</p>
       </div>
@@ -476,6 +559,14 @@ export default function OnboardingPage({ onComplete }) {
             </div>
           </div>
           <div>
+            <span className="font-semibold text-gray-700">Age:</span>
+            <span className="text-gray-600 ml-2">{formData.age || 'Not provided'}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-gray-700">Gender:</span>
+            <span className="text-gray-600 ml-2">{formData.gender || 'Not provided'}</span>
+          </div>
+          <div>
             <span className="font-semibold text-gray-700">Education:</span>
             <span className="text-gray-600 ml-2">{formData.education || 'Not provided'}</span>
           </div>
@@ -500,6 +591,7 @@ export default function OnboardingPage({ onComplete }) {
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
+            {step === 4 && renderStep4()}
           </div>
 
           {/* Navigation Buttons */}
@@ -552,9 +644,9 @@ export default function OnboardingPage({ onComplete }) {
           {/* Step Labels */}
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
-              Step {step} of 3:{' '}
+              Step {step} of 4:{' '}
               <span className="font-semibold">
-                {step === 1 ? 'Interests' : step === 2 ? 'Hobbies' : 'Professional Info'}
+                {step === 1 ? 'Interests' : step === 2 ? 'Hobbies' : step === 3 ? 'Personal Info' : 'Professional Info'}
               </span>
             </p>
           </div>

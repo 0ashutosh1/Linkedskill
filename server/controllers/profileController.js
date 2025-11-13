@@ -4,7 +4,7 @@ const User = require('../models/User');
 // Create or update profile
 exports.createOrUpdateProfile = async (req, res) => {
   try {
-    const { name, email, phoneNo, education, areasOfInterest, occupation, designation, linkedin, website, photoUrl } = req.body;
+    const { name, email, phoneNo, education, areasOfInterest, occupation, designation, linkedin, website, photoUrl, age, gender } = req.body;
     const userId = req.user.sub;
 
     // Check if profile already exists
@@ -22,6 +22,8 @@ exports.createOrUpdateProfile = async (req, res) => {
       if (linkedin !== undefined) profile.linkedin = linkedin;
       if (website !== undefined) profile.website = website;
       if (photoUrl !== undefined) profile.photoUrl = photoUrl;
+      if (age !== undefined) profile.age = age;
+      if (gender !== undefined) profile.gender = gender;
 
       await profile.save();
 
@@ -54,7 +56,9 @@ exports.createOrUpdateProfile = async (req, res) => {
         designation: designation || '',
         linkedin: linkedin || '',
         website: website || '',
-        photoUrl: photoUrl || ''
+        photoUrl: photoUrl || '',
+        age: age || null,
+        gender: gender || ''
       });
 
       await profile.save();

@@ -12,6 +12,8 @@ const profileSchema = new mongoose.Schema({
   linkedin: { type: String, default: '' },
   website: { type: String, default: '' },
   photoUrl: { type: String, default: '' },
+  age: { type: Number, default: null },
+  gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say', ''], default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Profile', profileSchema);
