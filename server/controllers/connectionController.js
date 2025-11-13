@@ -72,6 +72,33 @@ exports.followExpert = async (req, res) => {
       if (existingConnection.status === 'accepted' && existingConnection.isActive) {
         return res.status(400).json({ error: 'Already connected to this expert' })
       }
+      if (existingConnection.status === 'rejected' && existingConnection.isActive) {
+        // Allow reconnection - update the existing rejected connection to pending
+        try {
+          existingConnection.status = 'pending'
+          existingConnection.connectedAt = new Date()
+          existingConnection.notes = '' // Clear any rejection notes
+          await existingConnection.save()
+          
+          // Send notification to expert about the new request
+          await createNotification(
+            'connection_request',
+            `${follower.name} wants to connect with you as a student.`,
+            followerId,
+            expertId,
+            existingConnection._id,
+            'pending'
+          )
+          
+          return res.status(200).json({
+            message: 'Connection request sent successfully',
+            connection: existingConnection
+          })
+        } catch (reconnectionError) {
+          console.error('Error during reconnection:', reconnectionError)
+          return res.status(500).json({ error: 'Failed to send connection request' })
+        }
+      }
       if (!existingConnection.isActive) {
         try {
           // Reactivate connection with pending status

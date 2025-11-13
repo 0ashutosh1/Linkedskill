@@ -7,6 +7,7 @@ import {
 } from "@videosdk.live/react-sdk";
 import { getAuthToken, createMeeting } from "../utils/videoSdk";
 import { API_BASE_URL } from "../config";
+import ReviewModal from "./ReviewModal";
 
 function ParticipantView({ participantId, isHost }) {
   const micRef = useRef(null);
@@ -77,73 +78,82 @@ function ParticipantView({ participantId, isHost }) {
   );
 }
 
-function Controls({ onToggleChat, isHost, classData }) {
-  const meetingConfig = useMeeting();
-  const { leave, toggleMic, toggleWebcam, localMicOn, localWebcamOn } = meetingConfig || {};
+function Controls({ onToggleChat, isHost, classData, publishClassEnd, leave }) {
+  const { toggleMic, toggleWebcam, localMicOn, localWebcamOn } = useMeeting();
 
-  const handleToggleMic = () => {
-    if (toggleMic && typeof toggleMic === 'function') {
-      console.log('🎤 Toggling mic, current state:', localMicOn);
-      try {
-        toggleMic();
-      } catch (error) {
-        console.error("Error toggling mic:", error);
-      }
+  const handleToggleMic = useCallback(() => {
+    try {
+      toggleMic?.();
+    } catch (error) {
+      console.error("Error toggling mic:", error);
     }
-  };
+  }, [toggleMic]);
 
-  const handleToggleWebcam = () => {
-    if (toggleWebcam && typeof toggleWebcam === 'function') {
-      console.log('📹 Toggling webcam, current state:', localWebcamOn);
-      try {
-        toggleWebcam();
-      } catch (error) {
-        console.error("Error toggling webcam:", error);
-      }
+  const handleToggleWebcam = useCallback(() => {
+    try {
+      toggleWebcam?.();
+    } catch (error) {
+      console.error("Error toggling webcam:", error);
     }
-  };
+  }, [toggleWebcam]);
 
-  const handleLeave = async () => {
-    if (window.confirm(isHost ? "End class?" : "Leave class?")) {
-      // If host is ending the class, call backend to mark it as completed
-      if (isHost) {
-        try {
-          const authToken = localStorage.getItem('authToken');
-          const classId = classData?.classId || classData?._id;
-          
-          if (classId) {
-            console.log('🛑 Host ending class, calling backend to mark as completed...');
-            const response = await fetch(`http://localhost:4000/classes/${classId}/end`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              console.log('✅ Class marked as completed:', data);
-            } else {
-              console.error('❌ Failed to mark class as completed');
-            }
+  const handleLeave = useCallback(async () => {
+    if (!window.confirm(isHost ? "End class?" : "Leave class?")) return;
+
+    // If host, end class on backend and broadcast
+    if (isHost) {
+      try {
+        const authToken = localStorage.getItem('authToken');
+        const classId = classData?.classId || classData?._id;
+        
+        if (!classId || !authToken) {
+          alert('Error: ' + (!classId ? 'Class ID not found' : 'Authentication required'));
+          return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/classes/${classId}/end`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
           }
-        } catch (error) {
-          console.error('❌ Error calling endClass API:', error);
+        });
+        
+        if (!response.ok) {
+          alert('Error ending class. Please try again.');
+          return;
         }
-      }
-      
-      // Then leave the meeting
-      if (leave && typeof leave === 'function') {
-        console.log('🚪 Leaving meeting...');
-        try {
-          leave();
-        } catch (error) {
-          console.error("Error leaving meeting:", error);
-        }
+        
+        // Broadcast to students
+        publishClassEnd?.({
+          type: 'CLASS_ENDED',
+          classId,
+          timestamp: Date.now()
+        }, { persist: false });
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('Error ending class:', error);
+        alert('Network error. Please try again.');
+        return;
       }
     }
-  };
+    
+    // Leave meeting
+    if (!leave) {
+      window.location.href = window.location.origin;
+      return;
+    }
+    
+    try {
+      leave();
+      // Fallback if onMeetingLeft doesn't fire
+      setTimeout(() => window.location.href = window.location.origin, 3000);
+    } catch (error) {
+      console.error("Error leaving meeting:", error);
+      setTimeout(() => window.location.href = window.location.origin, 1000);
+    }
+  }, [isHost, classData, publishClassEnd, leave]);
 
   return (
     <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg p-4 flex flex-wrap gap-3 items-center justify-center">
@@ -248,76 +258,99 @@ function MeetingView({ classData, meetingId, onMeetingLeave, isInstructor, userN
   const [joinRequests, setJoinRequests] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
+  const [classEnded, setClassEnded] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const joinRequestSent = useRef(false);
   const hasJoined = useRef(false);
   const joinCalled = useRef(false);
   const joinTimeout = useRef(null);
 
+  const trackStudentJoin = useCallback(async () => {
+    if (isInstructor) return;
+    
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const classId = classData?.classId || classData?._id;
+      
+      const response = await fetch(`${API_BASE_URL}/classes/${classId}/track-join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        console.log('✅ Student join tracked');
+      }
+    } catch (err) {
+      console.error('❌ Error tracking student join:', err);
+    }
+  }, [isInstructor, classData]);
+
   const meetingConfig = useMeeting({
     onMeetingJoined: () => {
-      console.log("✅ onMeetingJoined callback fired");
-      if (!hasJoined.current) {
-        console.log("✅ Setting joined state to JOINED");
-        hasJoined.current = true;
-        setJoined("JOINED");
-      }
+      if (hasJoined.current) return;
+      hasJoined.current = true;
+      setJoined("JOINED");
+      trackStudentJoin();
     },
     onMeetingLeft: () => {
-      console.log("👋 Left meeting, navigating back");
       hasJoined.current = false;
-      onMeetingLeave();
+      setIsLeaving(true);
+      onMeetingLeave?.() || (window.location.href = window.location.origin);
     },
     onError: (error) => {
-      console.error("❌ Meeting error:", error);
-      console.error("Error code:", error?.code);
-      console.error("Error message:", error?.message);
-      
-      // Handle specific error cases
-      if (error?.code === 4009 || error?.message?.includes("max partcipant")) {
-        alert("⚠️ Maximum participant limit reached! Only 2 participants allowed in free plan.\n\nPlease wait for others to leave or upgrade your plan.");
-        onMeetingLeave();
-      } else if (error?.message?.includes("Insufficient") || error?.message?.includes("token")) {
-        alert("Connection error! Token might be invalid. Please try again.");
-        onMeetingLeave();
-      } else {
-        alert(`Meeting error: ${error?.message || 'Unknown error'}`);
-        onMeetingLeave();
-      }
+      console.error("Meeting error:", error);
+      const errorMessages = {
+        4009: "Maximum participant limit reached!",
+        token: "Connection error! Token invalid."
+      };
+      const message = error?.code === 4009 ? errorMessages[4009] : 
+                     error?.message?.includes("token") ? errorMessages.token :
+                     error?.message || 'Unknown error';
+      alert(message);
+      onMeetingLeave();
     },
   });
   
   const { join, leave, participants, localParticipant } = meetingConfig || {};
 
-  const { publish } = usePubSub("JOIN_REQUEST", {
-    onMessageReceived: (data) => {
-      if (isInstructor && data.message.type === "REQUEST") {
-        setJoinRequests((prev) => {
-          const exists = prev.find(r => r.userName === data.message.userName);
-          return exists ? prev : [...prev, {
-            userName: data.message.userName,
-            timestamp: data.message.timestamp,
-            senderId: data.senderId
-          }];
-        });
-      }
-      if (!isInstructor && data.message.userName === userName) {
-        if (data.message.type === "APPROVED") setApprovalStatus("APPROVED");
-        else if (data.message.type === "REJECTED") setApprovalStatus("REJECTED");
-      }
-    },
-  });
+  const handleJoinRequest = useCallback((data) => {
+    if (isInstructor && data.message.type === "REQUEST") {
+      setJoinRequests((prev) => {
+        const exists = prev.find(r => r.userName === data.message.userName);
+        return exists ? prev : [...prev, {
+          userName: data.message.userName,
+          timestamp: data.message.timestamp,
+          senderId: data.senderId
+        }];
+      });
+    } else if (!isInstructor && data.message.userName === userName) {
+      if (data.message.type === "APPROVED") setApprovalStatus("APPROVED");
+      else if (data.message.type === "REJECTED") setApprovalStatus("REJECTED");
+    }
+  }, [isInstructor, userName]);
 
-  const { publish: publishChat } = usePubSub("CHAT", {
-    onMessageReceived: (data) => {
-      console.log('📨 Received chat message:', data);
-      setChatMessages((prev) => [...prev, {
-        senderId: data.senderId,
-        senderName: data.message.senderName,
-        message: data.message.message,
-        timestamp: data.message.timestamp || Date.now(),
-      }]);
-    },
-  });
+  const handleChatMessage = useCallback((data) => {
+    setChatMessages((prev) => [...prev, {
+      senderId: data.senderId,
+      senderName: data.message.senderName,
+      message: data.message.message,
+      timestamp: data.message.timestamp || Date.now(),
+    }]);
+  }, []);
+
+  const handleClassEnded = useCallback((data) => {
+    if (!isInstructor && leave) {
+      setClassEnded(true);
+      setTimeout(() => leave(), 2000);
+    }
+  }, [isInstructor, leave]);
+
+  const { publish } = usePubSub("JOIN_REQUEST", { onMessageReceived: handleJoinRequest });
+  const { publish: publishChat } = usePubSub("CHAT", { onMessageReceived: handleChatMessage });
+  const { publish: publishClassEnd } = usePubSub("CLASS_ENDED", { onMessageReceived: handleClassEnded });
 
   const handleApprove = useCallback((request) => {
     publish({ type: "APPROVED", userName: request.userName }, { persist: false });
@@ -330,54 +363,32 @@ function MeetingView({ classData, meetingId, onMeetingLeave, isInstructor, userN
   }, [publish]);
 
   useEffect(() => {
-    // Only join once when the component mounts
-    if (!joinCalled.current && join && typeof join === 'function') {
-      console.log("🔗 Calling join() function...");
-      console.log("Meeting config:", { meetingId, participants: participants?.size });
-      joinCalled.current = true;
-      
-      try {
-        join();
-        console.log("✅ join() called successfully");
-        
-        // Set a timeout to force join if onMeetingJoined doesn't fire
-        joinTimeout.current = setTimeout(() => {
-          if (!hasJoined.current) {
-            console.log("⚠️ onMeetingJoined didn't fire after 8 seconds - forcing joined state");
-            setJoined("JOINED");
-            hasJoined.current = true;
-          }
-        }, 8000);
-      } catch (error) {
-        console.error("❌ Error calling join():", error);
+    if (joinCalled.current || !join) return;
+    
+    joinCalled.current = true;
+    join();
+    
+    // Fallback if onMeetingJoined doesn't fire
+    joinTimeout.current = setTimeout(() => {
+      if (!hasJoined.current) {
+        setJoined("JOINED");
+        hasJoined.current = true;
       }
-    } else {
-      console.log("⏸️ Not calling join - joinCalled:", joinCalled.current, "join exists:", !!join);
-    }
+    }, 8000);
     
     return () => {
-      if (joinTimeout.current) {
-        clearTimeout(joinTimeout.current);
-      }
+      clearTimeout(joinTimeout.current);
+      hasJoined.current = false;
     };
-  }, [join, meetingId, participants]);
-  
-  // Separate cleanup effect with stable reference
-  useEffect(() => {
-    return () => {
-      if (hasJoined.current) {
-        console.log("🧹 Component unmounting - will leave on next render");
-        hasJoined.current = false;
-      }
-    };
-  }, []);
+  }, [join]);
 
   useEffect(() => {
     if (!isInstructor && approvalStatus === "PENDING" && joined === "JOINED" && !joinRequestSent.current) {
-      setTimeout(() => {
-        publish({ type: "REQUEST", userName: userName, timestamp: Date.now() }, { persist: false });
+      const timer = setTimeout(() => {
+        publish({ type: "REQUEST", userName, timestamp: Date.now() }, { persist: false });
         joinRequestSent.current = true;
       }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [isInstructor, approvalStatus, joined, userName, publish]);
 
@@ -446,7 +457,13 @@ function MeetingView({ classData, meetingId, onMeetingLeave, isInstructor, userN
       {joined === "JOINED" ? (
         <>
           <div className="mb-6">
-            <Controls onToggleChat={() => setIsChatOpen(!isChatOpen)} isHost={isInstructor} classData={classData} />
+            <Controls 
+              onToggleChat={() => setIsChatOpen(!isChatOpen)} 
+              isHost={isInstructor} 
+              classData={classData}
+              publishClassEnd={publishClassEnd}
+              leave={leave}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -508,6 +525,14 @@ function MeetingView({ classData, meetingId, onMeetingLeave, isInstructor, userN
             localParticipantId={localParticipant?.id}
           />
         </>
+      ) : isLeaving ? (
+        <div className="text-center py-20">
+          <div className="text-6xl mb-4">👋</div>
+          <p className="text-xl">Leaving meeting...</p>
+          <p className="text-sm text-gray-400 mt-2">
+            {isInstructor ? 'Ending class and notifying students...' : 'Checking for review...'}
+          </p>
+        </div>
       ) : (
         <div className="text-center py-20">
           <div className="text-6xl mb-4">🔄</div>
@@ -523,6 +548,8 @@ export default function LiveClassPage({ classData, onBack }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [canReview, setCanReview] = useState(false);
   const mountedRef = useRef(false);
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -624,6 +651,8 @@ export default function LiveClassPage({ classData, onBack }) {
           const meetingIdToSave = typeof newMeetingId === 'string' ? newMeetingId : String(newMeetingId);
           
           const classId = classData.classId || classData._id;
+          
+          // First, update the meetingId
           const updateResponse = await fetch(`${API_BASE_URL}/classes/${classId}`, {
             method: 'PUT',
             headers: { 
@@ -631,8 +660,7 @@ export default function LiveClassPage({ classData, onBack }) {
               'Content-Type': 'application/json' 
             },
             body: JSON.stringify({ 
-              meetingId: meetingIdToSave,
-              status: 'live'
+              meetingId: meetingIdToSave
             })
           });
           
@@ -642,6 +670,28 @@ export default function LiveClassPage({ classData, onBack }) {
           } else {
             const errorText = await updateResponse.text();
             console.error('❌ Failed to save meetingId:', updateResponse.status, errorText);
+          }
+          
+          // Then, call the start endpoint to set status to 'live'
+          try {
+            console.log('🚀 Starting class (setting status to live)...');
+            const startResponse = await fetch(`${API_BASE_URL}/classes/${classId}/start`, {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${authToken}`, 
+                'Content-Type': 'application/json' 
+              }
+            });
+            
+            if (startResponse.ok) {
+              const startResult = await startResponse.json();
+              console.log('✅ Class started successfully:', startResult);
+            } else {
+              const startError = await startResponse.text();
+              console.error('❌ Failed to start class:', startResponse.status, startError);
+            }
+          } catch (startError) {
+            console.error('❌ Error starting class:', startError);
           }
         } else {
           setError("Waiting for instructor to start");
@@ -662,6 +712,84 @@ export default function LiveClassPage({ classData, onBack }) {
       mountedRef.current = false;
     };
   }, []); // Empty deps to run only once
+
+  const checkCanReview = useCallback(async () => {
+    if (isInstructor) return false;
+    
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const classId = classData.classId || classData._id;
+
+      const response = await fetch(`${API_BASE_URL}/reviews/can-review/${classId}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      
+      if (response.ok) {
+        const { canReview, review } = await response.json();
+        const eligible = canReview && !review;
+        setCanReview(eligible);
+        return eligible;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error checking review eligibility:', err);
+      return false;
+    }
+  }, [isInstructor, classData]);
+
+  // Handle review submission
+  const handleReviewSubmit = async (reviewData) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${API_BASE_URL}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reviewData)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Review submitted successfully:', data);
+        alert('Thank you for your feedback!');
+        setShowReviewModal(false);
+        setCanReview(false);
+        // Go back to home
+        onBack();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit review');
+      }
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      throw err;
+    }
+  };
+
+  const handleLeaveWithReview = useCallback(async () => {
+    if (isInstructor) {
+      onBack();
+      return;
+    }
+    
+    // Wait for backend to complete class end
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    try {
+      const eligible = await checkCanReview();
+      if (eligible) {
+        setShowReviewModal(true);
+      } else {
+        onBack();
+      }
+    } catch (err) {
+      console.error('Error checking review eligibility:', err);
+      onBack();
+    }
+  }, [isInstructor, checkCanReview, onBack]);
 
   if (loading) {
     return (
@@ -729,7 +857,18 @@ export default function LiveClassPage({ classData, onBack }) {
       reinitialiseMeetingOnConfigChange={true}
       joinWithoutUserInteraction={true}
     >
-      <MeetingView classData={classData} meetingId={meetingId} onMeetingLeave={onBack} isInstructor={isInstructor} userName={userName} />
+      <MeetingView classData={classData} meetingId={meetingId} onMeetingLeave={handleLeaveWithReview} isInstructor={isInstructor} userName={userName} />
+      
+      {/* Review Modal */}
+      <ReviewModal 
+        isOpen={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          onBack();
+        }}
+        classData={classData}
+        onSubmit={handleReviewSubmit}
+      />
     </MeetingProvider>
   );
 }

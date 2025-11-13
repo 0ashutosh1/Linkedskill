@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
     type: String, 
     enum: ['info', 'warning', 'error', 'success', 'reminder', 'update', 'announcement', 'message', 
            'connection_request', 'connection_accepted', 'connection_rejected',
-           'class_reminder', 'class_started', 'class_ended'],
+           'class_reminder', 'class_started', 'class_ended', 'review_reminder'],
     required: true 
   },
   message: { 

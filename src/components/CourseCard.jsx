@@ -29,14 +29,16 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
     userRole: currentUser?.role?.name
   })
   
-  // Check if registration is closed (15 minutes before class)
+  // Check if registration is closed (15 minutes before class) - COMMENTED OUT
   const isRegistrationClosed = () => {
-    if (!startTime || isRegistered) return false
-    const classStartTime = new Date(startTime).getTime()
-    const currentTime = new Date().getTime()
-    const timeUntilClass = classStartTime - currentTime
-    const fifteenMinutes = 15 * 60 * 1000
-    return timeUntilClass <= fifteenMinutes
+    // Registration time limit temporarily disabled
+    // if (!startTime || isRegistered) return false
+    // const classStartTime = new Date(startTime).getTime()
+    // const currentTime = new Date().getTime()
+    // const timeUntilClass = classStartTime - currentTime
+    // const fifteenMinutes = 15 * 60 * 1000
+    // return timeUntilClass <= fifteenMinutes
+    return false // Allow registration at any time
   }
   
   // Format the start time to display
@@ -151,18 +153,19 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
       return
     }
 
-    // Check if registration is closed (15 minutes before class start)
-    if (startTime && !isRegistered) {
-      const classStartTime = new Date(startTime).getTime()
-      const currentTime = new Date().getTime()
-      const timeUntilClass = classStartTime - currentTime
-      const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in milliseconds
-      
-      if (timeUntilClass <= fifteenMinutes) {
-        alert('Registration is closed. You cannot register within 15 minutes of class start time.')
-        return
-      }
-    }
+    // Check if registration is closed (15 minutes before class start) - COMMENTED OUT
+    // Registration time limit temporarily disabled
+    // if (startTime && !isRegistered) {
+    //   const classStartTime = new Date(startTime).getTime()
+    //   const currentTime = new Date().getTime()
+    //   const timeUntilClass = classStartTime - currentTime
+    //   const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in milliseconds
+    //   
+    //   if (timeUntilClass <= fifteenMinutes) {
+    //     alert('Registration is closed. You cannot register within 15 minutes of class start time.')
+    //     return
+    //   }
+    // }
     
     setIsRegistering(true)
     try {

@@ -243,7 +243,7 @@ export default function CarouselSection({ title, classes, onSeeAll, onJoin, onSe
         >
           {classes.map((classItem, index) => (
             <div
-              key={index}
+              key={classItem.classId || `carousel-class-${index}`}
               ref={el => cardRefs.current[index] = el}
               className="relative transition-all duration-300 ease-in-out"
               style={{ 

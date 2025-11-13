@@ -18,6 +18,7 @@ const messageRoutes = require('./routes/message');
 const expertsRoutes = require('./routes/experts');
 const videosdkRoutes = require('./routes/videosdk');
 const jobsRoutes = require('./routes/jobs');
+const reviewRoutes = require('./routes/review');
 const fs = require('fs');
 const path = require('path');
 
@@ -46,6 +47,7 @@ app.use('/messages', messageRoutes);
 app.use('/experts', expertsRoutes);
 app.use('/videosdk', videosdkRoutes);
 app.use('/jobs', jobsRoutes);
+app.use('/reviews', reviewRoutes);
 
 app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Auth API running' });

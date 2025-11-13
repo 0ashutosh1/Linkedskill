@@ -150,7 +150,7 @@ export default function AllClassesPage({ categoryName, allClasses, onBack, onJoi
         {filteredClasses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredClasses.map((classItem, index) => (
-              <div key={index} className="transform hover:scale-105 transition-transform duration-200">
+              <div key={classItem.classId || `class-${index}`} className="transform hover:scale-105 transition-transform duration-200">
                 <CourseCard
                   title={classItem.title}
                   tag={classItem.tag}

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { CompactCountdownTimer } from './CountdownTimer'
+import ClassReviewsSummary from './ClassReviewsSummary'
 import { classAPI } from '../utils/classAPI'
 import { createMeeting } from '../utils/videoSdk'
 import { getCurrentUser } from '../utils/auth'
 
 const API_URL = 'http://localhost:4000'
 
-export default function ProfilePage({ onBack, profile: passedProfile, onJoinLiveClass, onPhotoUpdate }) {
+export default function ProfilePage({ onBack, profile: passedProfile, onJoinLiveClass, onPhotoUpdate, onViewClassReviews }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const isOwnProfile = !passedProfile || passedProfile.id === 'me'
@@ -223,14 +224,14 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
         const classEndTime = new Date(classDate.getTime() + (classItem.duration || 60) * 60000)
         
         if (classFilter === 'upcoming') {
-          // Future classes that haven't started yet
-          return classDate > now && classItem.status === 'scheduled'
+          // Future classes that haven't started yet (scheduled only)
+          return classItem.status === 'scheduled' && classDate > now
         } else if (classFilter === 'ongoing') {
-          // Currently live or classes that are in progress
-          return classItem.status === 'live' || (classDate <= now && classEndTime > now)
+          // Only live classes (not completed, not scheduled)
+          return classItem.status === 'live'
         } else if (classFilter === 'past') {
-          // Classes that have ended
-          return classItem.status === 'completed' || classEndTime < now
+          // Only completed classes
+          return classItem.status === 'completed'
         }
         return true
       })
@@ -1292,6 +1293,27 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                                     </span>
                                   </div>
                                 )}
+                              </div>
+                            )}
+
+                            {/* Student Reviews Section - Show for completed classes */}
+                            {classItem.status === 'completed' && (
+                              <div className="mb-3">
+                                <ClassReviewsSummary 
+                                  expertId={classItem.userId?._id || classItem.userId}
+                                  classId={classItem._id}
+                                  classData={classItem}
+                                  onViewAll={() => {
+                                    if (onViewClassReviews) {
+                                      onViewClassReviews({
+                                        id: classItem.userId?._id || classItem.userId,
+                                        name: profile?.name || 'Expert',
+                                        classId: classItem._id,
+                                        className: classItem.title
+                                      });
+                                    }
+                                  }}
+                                />
                               </div>
                             )}
 

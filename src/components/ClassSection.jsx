@@ -39,7 +39,7 @@ export default function ClassSection({ title, classes, onSeeAll, onJoin, onSelec
         {classes && classes.length > 0 ? (
           classes.map((classItem, index) => (
             <div
-              key={index}
+              key={classItem.classId || `class-${index}`}
               style={{ animationDelay: `${index * 100}ms`, overflow: 'visible' }}
               className="animate-fadeInUp relative"
             >

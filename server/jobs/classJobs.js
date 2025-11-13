@@ -1,5 +1,6 @@
 const Class = require('../models/Class');
 const Notification = require('../models/Notification');
+const Review = require('../models/Review');
 
 /**
  * Define all class-related jobs for Agenda
@@ -172,6 +173,81 @@ function defineClassJobs(agenda) {
       priority: 'high',
       concurrency: 10,
       lockLifetime: 2 * 60 * 1000,
+      shouldSaveResult: true
+    }
+  );
+
+  /**
+   * Job: class_send_review_reminder
+   * Sends review reminder to students who haven't reviewed yet
+   * Runs 5 minutes after class ends
+   */
+  agenda.define(
+    'class_send_review_reminder',
+    async (job) => {
+      const { classId } = job.attrs.data;
+
+      try {
+        const classData = await Class.findById(classId);
+
+        if (!classData) {
+          throw new Error(`Class not found: ${classId}`);
+        }
+
+        // Only process if class is completed
+        if (classData.status !== 'completed') {
+          console.log(`⏭️  Skipping review reminder - Class ${classId} is not completed`);
+          return;
+        }
+
+        console.log(`📝 Sending review reminders for "${classData.title}" (${classId})`);
+
+        // Get students who joined the class
+        const studentsJoined = classData.studentsJoined || [];
+        
+        if (studentsJoined.length === 0) {
+          console.log(`ℹ️  No students joined this class, skipping review reminders`);
+          return;
+        }
+
+        // Find who has already reviewed
+        const existingReviews = await Review.find({ 
+          classId: classId 
+        }).select('studentId');
+        
+        const reviewedStudentIds = existingReviews.map(r => r.studentId.toString());
+
+        // Filter students who haven't reviewed yet
+        const studentsToRemind = studentsJoined.filter(
+          studentId => !reviewedStudentIds.includes(studentId.toString())
+        );
+
+        if (studentsToRemind.length === 0) {
+          console.log(`✅ All students have already reviewed this class!`);
+          return;
+        }
+
+        // Send review reminders only to students who haven't reviewed
+        const notifications = studentsToRemind.map((studentId) => ({
+          type: 'review_reminder',
+          message: `📝 Please rate your experience in "${classData.title}". Your feedback helps us improve!`,
+          senderId: classData.userId,
+          receiverId: studentId,
+          priority: 'normal',
+          createdAt: new Date()
+        }));
+
+        await Notification.insertMany(notifications);
+        console.log(`📢 Sent review reminders to ${notifications.length} students (${studentsJoined.length - reviewedStudentIds.length} pending reviews)`);
+      } catch (err) {
+        console.error(`❌ Error in class_send_review_reminder job for ${classId}:`, err);
+        throw err;
+      }
+    },
+    {
+      priority: 'low',
+      concurrency: 5,
+      lockLifetime: 3 * 60 * 1000,
       shouldSaveResult: true
     }
   );

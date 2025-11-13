@@ -211,12 +211,19 @@ exports.getExpertProfiles = async (req, res) => {
       .populate({
         path: 'userId',
         match: { roleId: expertRole._id },
-        select: 'name email phoneNo roleId'
+        select: 'name email phoneNo roleId averageRating totalReviews'
       })
       .exec();
 
     // Filter out profiles where userId is null (non-expert users)
     const validExpertProfiles = expertProfiles.filter(profile => profile.userId !== null);
+
+    // Debug: Log first profile to check rating data
+    if (validExpertProfiles.length > 0) {
+      console.log('First expert profile userId:', validExpertProfiles[0].userId);
+      console.log('Average rating:', validExpertProfiles[0].userId?.averageRating);
+      console.log('Total reviews:', validExpertProfiles[0].userId?.totalReviews);
+    }
 
     res.json({ 
       profiles: validExpertProfiles,

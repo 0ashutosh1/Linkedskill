@@ -1,6 +1,25 @@
 const Message = require('../models/Message')
 const Connection = require('../models/Connection')
 const User = require('../models/User')
+const Notification = require('../models/Notification')
+
+// Helper function to create notifications
+const createNotification = async (type, message, senderId, receiverId, priority = 'normal') => {
+  try {
+    const notification = new Notification({
+      type,
+      message,
+      senderId,
+      receiverId,
+      priority
+    })
+    await notification.save()
+    return notification
+  } catch (error) {
+    console.error('Error creating notification:', error)
+    // Don't throw - notification failure shouldn't stop message sending
+  }
+}
 
 // Send a message
 exports.sendMessage = async (req, res) => {
@@ -46,6 +65,17 @@ exports.sendMessage = async (req, res) => {
     // Update connection's last interaction
     connection.lastInteraction = new Date()
     await connection.save()
+
+    // Create notification for message recipient
+    const senderName = message.senderId.name || 'Someone'
+    const messagePreview = content.length > 50 ? content.substring(0, 50) + '...' : content
+    await createNotification(
+      'message',
+      `${senderName}: ${messagePreview}`,
+      senderId,
+      receiverId,
+      'normal'
+    )
 
     res.status(201).json({
       message: 'Message sent successfully',

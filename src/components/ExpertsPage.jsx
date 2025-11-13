@@ -48,6 +48,12 @@ export default function ExpertsPage({ onBack }) {
         const data = await response.json()
         const expertProfiles = data.profiles || []
         
+        // Debug: Log the first expert's data to check rating fields
+        if (expertProfiles.length > 0) {
+          console.log('First expert data:', expertProfiles[0])
+          console.log('First expert userId:', expertProfiles[0].userId)
+        }
+        
         // Filter out the logged-in user
         const filteredExperts = expertProfiles.filter(expert => {
           const expertUserId = expert.userId?._id || expert.userId
@@ -114,9 +120,10 @@ export default function ExpertsPage({ onBack }) {
       }
     } else if (status.status === 'rejected') {
       return {
-        text: '❌ Rejected',
+        text: 'Reconnect',
         isConnected: false,
-        canDisconnect: false
+        canDisconnect: false,
+        canReconnect: true
       }
     } else {
       return {
@@ -136,12 +143,14 @@ export default function ExpertsPage({ onBack }) {
       const currentStatus = connectionStatuses[expertId] || {}
       
       if (currentStatus.isConnected) {
+        // Disconnect an existing connection
         await unfollowExpert(expertId)
         setConnectionStatuses(prev => ({ 
           ...prev, 
           [expertId]: { isConnected: false, status: null, connectionExists: false } 
         }))
       } else {
+        // Send new connection request (works for new connections and reconnections)
         await followExpert(expertId)
         setConnectionStatuses(prev => ({ 
           ...prev, 
@@ -248,7 +257,13 @@ export default function ExpertsPage({ onBack }) {
           return (
             <div
               key={expert._id}
-              onClick={() => setSelectedMember(expert)}
+              onClick={() => {
+                console.log('Opening modal for expert:', expert);
+                console.log('Expert userId:', expert.userId);
+                console.log('Average rating:', expert.userId?.averageRating);
+                console.log('Total reviews:', expert.userId?.totalReviews);
+                setSelectedMember(expert);
+              }}
               style={{ 
                 animationDelay: `${Math.min(index * 50, 1000)}ms`,
                 willChange: 'transform'
@@ -283,7 +298,7 @@ export default function ExpertsPage({ onBack }) {
                       e.stopPropagation()
                       handleFollowToggle(expertId)
                     }}
-                    disabled={isConnecting || (!buttonInfo.canDisconnect && buttonInfo.text !== 'Connect')}
+                    disabled={isConnecting || (!buttonInfo.canDisconnect && buttonInfo.text !== 'Connect' && !buttonInfo.canReconnect)}
                     className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold 
                                transition-all duration-200 backdrop-blur-sm border border-white/20 
                                active:scale-95 ${
@@ -291,8 +306,8 @@ export default function ExpertsPage({ onBack }) {
                         ? 'bg-green-500/30 text-green-100 hover:bg-green-500/40'
                         : buttonInfo.text === '⏳ Request Sent'
                         ? 'bg-orange-500/30 text-orange-100 cursor-not-allowed'
-                        : buttonInfo.text === '❌ Rejected'
-                        ? 'bg-red-500/30 text-red-100 cursor-not-allowed'
+                        : buttonInfo.text === 'Reconnect'
+                        ? 'bg-blue-500/30 text-blue-100 hover:bg-blue-500/40'
                         : 'bg-white/20 text-white hover:bg-white/30'
                     } ${isConnecting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
@@ -374,8 +389,15 @@ export default function ExpertsPage({ onBack }) {
                   <div className="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 
                                   bg-gradient-to-r from-indigo-500 to-purple-600 text-white 
                                   p-2 sm:p-3 rounded-full shadow-lg 
-                                  ring-2 ring-white">
-                    <span className="text-xs sm:text-sm font-bold">★ 5.0</span>
+                                  ring-2 ring-white flex flex-col items-center justify-center">
+                    <span className="text-xs sm:text-sm font-bold leading-tight">
+                      ★ {selectedMember.userId?.averageRating?.toFixed(1) || selectedMember.averageRating?.toFixed(1) || '0.0'}
+                    </span>
+                    {(selectedMember.userId?.totalReviews > 0 || selectedMember.totalReviews > 0) && (
+                      <span className="text-[0.5rem] sm:text-xs opacity-90 leading-tight">
+                        {selectedMember.userId?.totalReviews || selectedMember.totalReviews || 0} reviews
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -472,7 +494,7 @@ export default function ExpertsPage({ onBack }) {
                 <div className="mt-4 sm:mt-6 md:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4">
                   <button
                     onClick={() => handleFollowToggle(selectedMember.userId._id)}
-                    disabled={connectingExperts.has(selectedMember.userId._id) || !getConnectionButtonInfo(selectedMember.userId._id).canDisconnect && getConnectionButtonInfo(selectedMember.userId._id).text !== 'Connect'}
+                    disabled={connectingExperts.has(selectedMember.userId._id) || (!getConnectionButtonInfo(selectedMember.userId._id).canDisconnect && getConnectionButtonInfo(selectedMember.userId._id).text !== 'Connect' && !getConnectionButtonInfo(selectedMember.userId._id).canReconnect)}
                     className={`flex-1 sm:flex-none px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 
                                rounded-full font-semibold transition-all duration-300 
                                text-sm sm:text-base hover:scale-105 active:scale-95
@@ -481,8 +503,8 @@ export default function ExpertsPage({ onBack }) {
                                  ? 'bg-green-600 hover:bg-green-700 text-white'
                                  : getConnectionButtonInfo(selectedMember.userId._id).text === '⏳ Request Sent'
                                  ? 'bg-orange-500 text-white cursor-not-allowed'
-                                 : getConnectionButtonInfo(selectedMember.userId._id).text === '❌ Rejected'
-                                 ? 'bg-red-500 text-white cursor-not-allowed'
+                                 : getConnectionButtonInfo(selectedMember.userId._id).text === 'Reconnect'
+                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
                                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
                                } ${connectingExperts.has(selectedMember.userId._id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >

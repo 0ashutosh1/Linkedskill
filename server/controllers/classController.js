@@ -477,14 +477,20 @@ exports.endClass = async (req, res) => {
       return res.status(403).json({ error: 'Only the class instructor can end the class' });
     }
     
-    // Check if class is live
-    if (classData.status !== 'live') {
-      return res.status(400).json({ error: 'Class is not currently live' });
+    // Check if class is live or scheduled (allow ending both)
+    if (classData.status !== 'live' && classData.status !== 'scheduled') {
+      return res.status(400).json({ error: 'Class cannot be ended. Current status: ' + classData.status });
     }
     
     // Record analytics
     classData.status = 'completed';
     classData.actualEndTime = new Date();
+    
+    // If class was never started, set actualStartTime to now (for classes that were ended without starting)
+    if (!classData.actualStartTime) {
+      classData.actualStartTime = new Date();
+      console.log('⚠️ Class ended without being started, setting actualStartTime to now');
+    }
     
     // Calculate actual duration in minutes
     if (classData.actualStartTime) {
@@ -514,6 +520,23 @@ exports.endClass = async (req, res) => {
       }
     } catch (notificationError) {
       console.error('Error sending end notifications:', notificationError);
+    }
+
+    // Schedule review reminder job (5 minutes after class ends)
+    try {
+      const agenda = req.app.locals.agenda;
+      if (agenda) {
+        const reviewReminderTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+        
+        await agenda.schedule(reviewReminderTime, 'class_send_review_reminder', {
+          classId: id
+        });
+        
+        console.log(`📝 Scheduled review reminder for "${classData.title}" at ${reviewReminderTime.toLocaleTimeString()}`);
+      }
+    } catch (scheduleError) {
+      console.error('Error scheduling review reminder:', scheduleError);
+      // Don't fail the request if scheduling fails
     }
     
     console.log(`✅ Class "${classData.title}" completed. Duration: ${classData.actualDuration} mins, Students joined: ${classData.totalStudentsJoined}/${classData.attendees.length}`);

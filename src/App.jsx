@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ProfilePage from './components/ProfilePage'
 import ReferencePage from './components/ReferencePage'
 import ExpertsPage from './components/ExpertsPage'
+import ExpertReviewsPage from './components/ExpertReviewsPage'
 import NotificationsPage from './components/NotificationsPage'
+import FloatingNotification from './components/FloatingNotification'
 import AddClassModal from './components/AddClassModal'
 import LoginPage from './components/LoginPage'
 import SignupPage from './components/SignupPage'
@@ -55,6 +57,15 @@ export default function App() {
   const [showAllUpcoming, setShowAllUpcoming] = useState(false)
   const [userRole, setUserRole] = useState(null) // Track user role for sidebar updates
   const [sidebarKey, setSidebarKey] = useState(0) // Force sidebar re-render
+  
+  // Expert reviews state
+  const [selectedExpertForReviews, setSelectedExpertForReviews] = useState(null)
+
+  // Notification states
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [floatingNotifications, setFloatingNotifications] = useState([])
+  const [notificationCheckInterval, setNotificationCheckInterval] = useState(null)
+  const shownNotificationsRef = useRef(new Set()) // Track which notifications have been shown
 
   // Dynamic category-based classes state
   const [categoriesWithClasses, setCategoriesWithClasses] = useState([])
@@ -213,11 +224,13 @@ export default function App() {
         // Check if onboarding was completed
         const onboardingComplete = localStorage.getItem('onboardingComplete')
         
-        if (!onboardingComplete) {
-          // User is authenticated but hasn't completed onboarding
+        // Only show onboarding if explicitly marked as incomplete (for new signups)
+        // If the flag doesn't exist, assume existing user who's already onboarded
+        if (onboardingComplete === 'false') {
+          // User is authenticated but hasn't completed onboarding (new signup)
           setShowOnboarding(true)
         } else {
-          // User has completed onboarding, go to home
+          // User has completed onboarding OR is an existing user, go to home
           setRoute('home')
           fetchConnectedExperts()
           fetchUpcomingClasses()
@@ -233,15 +246,6 @@ export default function App() {
       setAppLoading(false) // Still set loading to false to prevent infinite loading
     }
   }, []) // Remove fetchConnectedExperts from dependencies to prevent infinite loop
-
-  // Refetch connections and classes when returning to home/dashboard
-  useEffect(() => {
-    if (isAuthenticated && route === 'home') {
-      fetchConnectedExperts()
-      fetchUpcomingClasses()
-      fetchClassesByCategories()
-    }
-  }, [route, isAuthenticated, fetchConnectedExperts, fetchUpcomingClasses, fetchClassesByCategories])
 
   function handleLogin(userData) {
     // Update user role immediately after login
@@ -290,30 +294,22 @@ export default function App() {
       }
     }
     
-    // IMPORTANT: Clear any existing onboarding flag for new signups
-    localStorage.removeItem('onboardingComplete')
+    // IMPORTANT: Set onboarding flag to false for new signups
+    localStorage.setItem('onboardingComplete', 'false')
     
-    // Check if onboarding is needed (should always be needed for new signups)
-    const onboardingComplete = localStorage.getItem('onboardingComplete')
-    
-    if (!onboardingComplete) {
-      // Set authentication first, then show onboarding
-      setIsAuthenticated(true)
-      // Use setTimeout to ensure state updates properly
-      setTimeout(() => {
-        setShowOnboarding(true)
-      }, 0)
-    } else {
-      setIsAuthenticated(true)
-      setRoute('home')
-      fetchConnectedExperts()
-      fetchUpcomingClasses()
-      fetchClassesByCategories()
-      fetchUserProfile()
-    }
+    // New signups always need onboarding
+    // Set authentication first, then show onboarding
+    setIsAuthenticated(true)
+    // Use setTimeout to ensure state updates properly
+    setTimeout(() => {
+      setShowOnboarding(true)
+    }, 0)
   }
 
   function handleOnboardingComplete() {
+    // Mark onboarding as complete
+    localStorage.setItem('onboardingComplete', 'true')
+    
     // Update user role after onboarding
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (user.role) {
@@ -346,6 +342,197 @@ export default function App() {
     setSelectedProfile(expert)
     setRoute('profile')
   }
+
+  // Handle viewing expert reviews
+  function handleViewExpertReviews(expert) {
+    setSelectedExpertForReviews({
+      id: expert.id || expert._id,
+      name: expert.name,
+      classId: expert.classId || null,
+      className: expert.className || null
+    })
+    setRoute('expert-reviews')
+  }
+
+  // Notification Functions
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) return
+
+      const response = await fetch('http://localhost:4000/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const unread = data.notifications?.filter(n => !n.is_read).length || 0
+        setUnreadCount(unread)
+        
+        // Check for priority notifications (including messages)
+        const priorityNotifs = data.notifications?.filter(n => 
+          !n.is_read && 
+          (n.type === 'connection_request' || n.type === 'class_starting' || n.type === 'class_reminder' || n.type === 'message')
+        )
+
+        // Show floating notifications for new priority items
+        if (priorityNotifs && priorityNotifs.length > 0) {
+          priorityNotifs.forEach(notif => {
+            // Check if we haven't shown this notification yet
+            if (!shownNotificationsRef.current.has(notif._id)) {
+              shownNotificationsRef.current.add(notif._id)
+              showFloatingNotification(notif)
+            }
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err)
+    }
+  }, [floatingNotifications])
+
+  const showFloatingNotification = (notification) => {
+    const floatingNotif = {
+      ...notification,
+      id: notification._id || Date.now(),
+      priority: notification.type === 'connection_request' || notification.type === 'class_starting' ? 'high' : 'normal'
+    }
+    
+    setFloatingNotifications(prev => [...prev, floatingNotif])
+  }
+
+  const handleCloseFloatingNotification = (notificationId) => {
+    setFloatingNotifications(prev => prev.filter(n => n.id !== notificationId))
+  }
+
+  const handleNotificationAction = async (action, notification) => {
+    try {
+      const token = localStorage.getItem('authToken')
+      
+      // Handle notification actions
+      if (action === 'accept' && notification.type === 'connection_request') {
+        // Accept connection request
+        const acceptResponse = await fetch(`http://localhost:4000/connections/accept/${notification.connectionId}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        if (acceptResponse.ok) {
+          console.log('Connection accepted successfully')
+          
+          // Mark notification as read
+          await fetch(`http://localhost:4000/notifications/${notification._id}/read`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          
+          // Refresh connected experts and notifications
+          fetchConnectedExperts()
+          fetchUnreadCount()
+        } else {
+          console.error('Failed to accept connection')
+        }
+      } else if (action === 'reject' && notification.type === 'connection_request') {
+        // Reject connection request
+        const rejectResponse = await fetch(`http://localhost:4000/connections/reject/${notification.connectionId}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        if (rejectResponse.ok) {
+          console.log('Connection rejected successfully')
+          
+          // Mark notification as read
+          await fetch(`http://localhost:4000/notifications/${notification._id}/read`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          
+          // Refresh notifications
+          fetchUnreadCount()
+        } else {
+          console.error('Failed to reject connection')
+        }
+      } else if (action === 'join' && notification.type === 'class_starting') {
+        // Navigate to live class
+        setRoute('live-class')
+        
+        // Mark notification as read
+        await fetch(`http://localhost:4000/notifications/${notification._id}/read`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        // You might need to set currentCourse here
+      } else if (action === 'view' && notification.type === 'message') {
+        // Open chat with the message sender
+        try {
+          // Find the sender in connected experts
+          const sender = connectedExperts.find(expert => expert.id === notification.senderId?._id || expert.id === notification.senderId)
+          
+          if (sender) {
+            handleExpertChatClick(sender)
+          } else {
+            // If not found in connected experts, fetch the connection
+            const response = await fetch('http://localhost:4000/connections/my-connections', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              const connection = data.connections?.find(c => c.id === notification.senderId?._id || c.id === notification.senderId)
+              
+              if (connection) {
+                handleExpertChatClick(connection)
+              }
+            }
+          }
+          
+          // Mark notification as read
+          await fetch(`http://localhost:4000/notifications/${notification._id}/read`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          
+          fetchUnreadCount()
+        } catch (error) {
+          console.error('Error opening message:', error)
+        }
+      }
+    } catch (err) {
+      console.error('Error handling notification action:', err)
+    }
+    
+    // Close the floating notification
+    handleCloseFloatingNotification(notification.id)
+  }
+
+  // Refetch connections and classes when returning to home/dashboard
+  useEffect(() => {
+    if (isAuthenticated && route === 'home') {
+      fetchConnectedExperts()
+      fetchUpcomingClasses()
+      fetchClassesByCategories()
+      fetchUnreadCount() // Fetch notifications when on home
+    }
+  }, [isAuthenticated, route, fetchConnectedExperts, fetchUpcomingClasses, fetchClassesByCategories, fetchUnreadCount])
+
+  // Poll for notifications every 30 seconds when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUnreadCount() // Initial fetch
+      
+      const interval = setInterval(() => {
+        fetchUnreadCount()
+      }, 30000) // Check every 30 seconds
+      
+      setNotificationCheckInterval(interval)
+      
+      return () => {
+        if (interval) clearInterval(interval)
+      }
+    }
+  }, [isAuthenticated, fetchUnreadCount])
 
   // Student Chat Functions (for experts)
   function handleStudentChatClick(student) {
@@ -581,8 +768,8 @@ export default function App() {
         return
       } 
       
-      // If not live yet, handle registration for students
-      if (status === 'scheduled' && classId && !isOwner) {
+      // Handle registration for students (works for both scheduled and live classes)
+      if ((status === 'scheduled' || status === 'live') && classId && !isOwner) {
         const checkResponse = await fetch('http://localhost:4000/classes', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -615,6 +802,34 @@ export default function App() {
             const actionText = isRegistered ? 'left' : 'joined'
             alert(`Successfully ${actionText} the class "${title}"!`)
             
+            // If class is live and user just registered, ask if they want to join now
+            if (status === 'live' && !isRegistered && meetingId) {
+              const joinNow = confirm('You are now registered! Would you like to join the live class now?')
+              if (joinNow) {
+                // Track student join
+                try {
+                  await fetch(`http://localhost:4000/classes/${classId}/track-join`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    }
+                  })
+                } catch (trackError) {
+                  console.warn('Could not track join:', trackError)
+                }
+                
+                // Navigate to live class
+                setCurrentCourse({
+                  ...classData,
+                  classId: classData._id || classId,
+                  isHost: false
+                })
+                setRoute('live-class')
+                return
+              }
+            }
+            
             // Refresh the classes
             if (selectedCategory) {
               handleCategoryClick(selectedCategory)
@@ -625,7 +840,7 @@ export default function App() {
             alert(errorData.error || `Failed to ${action} class`)
           }
         }
-      } else {
+      } else if (!classId) {
         // Fallback for classes without classId
         alert('Class registration not available for this class')
       }
@@ -850,6 +1065,34 @@ export default function App() {
                       </svg>
                     </button>
                   </div>
+                  
+                  {/* Notification Bell Button */}
+                  <button
+                    onClick={() => setRoute('notifications')}
+                    className="relative p-2 xs:p-2.5 sm:p-3 
+                               bg-slate-800/80 hover:bg-slate-700/80 
+                               rounded-full border border-slate-600/50
+                               text-gray-400 hover:text-yellow-400
+                               transition-all duration-200 
+                               shadow-sm hover:shadow-md
+                               active:scale-95"
+                  >
+                    <svg className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    
+                    {/* Unread count badge */}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 
+                                     bg-red-500 text-white 
+                                     text-[10px] xs:text-xs font-bold 
+                                     rounded-full w-4 h-4 xs:w-5 xs:h-5 
+                                     flex items-center justify-center
+                                     animate-pulse">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
               </header>
             )}
@@ -1081,6 +1324,7 @@ export default function App() {
                   setRoute('live-class');
                 }}
                 onPhotoUpdate={fetchUserProfile}
+                onViewClassReviews={handleViewExpertReviews}
               />
             ) : route === 'references' ? (
               <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
@@ -1097,6 +1341,17 @@ export default function App() {
               />
             ) : route === 'experts' ? (
               <ExpertsPage onBack={() => setRoute('home')} />
+            ) : route === 'expert-reviews' && selectedExpertForReviews ? (
+              <ExpertReviewsPage 
+                expertId={selectedExpertForReviews.id}
+                expertName={selectedExpertForReviews.name}
+                classId={selectedExpertForReviews.classId}
+                className={selectedExpertForReviews.className}
+                onBack={() => {
+                  setSelectedExpertForReviews(null);
+                  setRoute('home');
+                }}
+              />
             ) : route === 'notifications' ? (
               <NotificationsPage onBack={() => setRoute('home')} />
             ) : null }
@@ -1115,10 +1370,10 @@ export default function App() {
                 <RightPanel 
                   onProfileClick={() => { setSelectedProfile({ id: 'me', name: 'Alex Morgan', role: 'Software Developer' }); setRoute('profile'); }} 
                   onReferencesClick={() => setRoute('references')}
-                  onNotificationsClick={() => setRoute('notifications')}
                   connectedExperts={connectedExperts}
                   onExpertChatClick={handleExpertChatClick}
                   onExpertProfileClick={handleExpertProfileClick}
+                  onExpertReviewsClick={handleViewExpertReviews}
                   onStudentChatClick={handleStudentChatClick}
                   onStudentProfileClick={handleStudentProfileClick}
                   connectionsLoading={connectionsLoading}
@@ -1128,12 +1383,23 @@ export default function App() {
                   userName={userName}
                   onPhotoUpdate={fetchUserProfile}
                   onConnectionRemoved={fetchConnectedExperts}
+                  onViewClassReviews={handleViewExpertReviews}
                 />
               </div>
             </aside>
           )}
         </div>
       </div>
+
+      {/* Floating Notifications */}
+      {floatingNotifications.map((notification) => (
+        <FloatingNotification
+          key={notification.id}
+          notification={notification}
+          onClose={() => handleCloseFloatingNotification(notification.id)}
+          onAction={handleNotificationAction}
+        />
+      ))}
       </div>
     </div>
   )

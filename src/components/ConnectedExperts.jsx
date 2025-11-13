@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 
 const API_URL = 'http://localhost:4000'
 
-export default function ConnectedExperts({ connectedExperts, onChatClick, onProfileClick, loading = false, onConnectionRemoved }) {
+export default function ConnectedExperts({ connectedExperts, onChatClick, onProfileClick, onReviewsClick, loading = false, onConnectionRemoved }) {
   const [showAll, setShowAll] = useState(false)
   const [removingConnection, setRemovingConnection] = useState(null)
   

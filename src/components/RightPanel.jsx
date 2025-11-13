@@ -5,11 +5,11 @@ import ConnectedStudents from './ConnectedStudents'
 
 export default function RightPanel({ 
   onProfileClick, 
-  onReferencesClick, 
-  onNotificationsClick, 
+  onReferencesClick,
   connectedExperts, 
   onExpertChatClick, 
-  onExpertProfileClick, 
+  onExpertProfileClick,
+  onExpertReviewsClick,
   connectionsLoading, 
   onStudentChatClick, 
   onStudentProfileClick,
@@ -18,7 +18,8 @@ export default function RightPanel({
   userPhotoUrl = '',
   userName = '',
   onPhotoUpdate,
-  onConnectionRemoved
+  onConnectionRemoved,
+  onViewClassReviews
 }){
   const user = getCurrentUser()
   // Use userName prop if available, otherwise fall back to token name
@@ -74,24 +75,6 @@ export default function RightPanel({
               Continue Your Journey And Achieve Your Target
             </div>
           </div>
-
-          {/* Action buttons with enhanced responsive design */}
-          <div className="flex items-center justify-center">
-            <button 
-              onClick={onNotificationsClick}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-violet-500/30 bg-violet-500/10
-                         flex items-center justify-center text-violet-400 hover:bg-violet-500/20 hover:text-violet-300 
-                         hover:border-blue-400/50 transition-all duration-300 hover:scale-110 active:scale-95 
-                         shadow-sm hover:shadow-lg hover:shadow-blue-500/20"
-              title="View notifications"
-              aria-label="View notifications"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                      d="M15 17h5l-3.5-3.5a8.38 8.38 0 01-1.5-5V8a6 6 0 10-12 0v.5c0 2-.5 4-1.5 5L0 17h5m10 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-              </svg>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -105,12 +88,14 @@ export default function RightPanel({
             upcomingClasses={upcomingClasses}
             onClassUpdate={onClassUpdate}
             onConnectionRemoved={onConnectionRemoved}
+            onViewClassReviews={onViewClassReviews}
           />
         ) : (
           <ConnectedExperts 
             connectedExperts={connectedExperts}
             onChatClick={onExpertChatClick}
             onProfileClick={onExpertProfileClick}
+            onReviewsClick={onExpertReviewsClick}
             loading={connectionsLoading}
             onConnectionRemoved={onConnectionRemoved}
           />
