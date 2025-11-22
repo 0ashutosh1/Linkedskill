@@ -8,7 +8,9 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   // Expert rating fields
   averageRating: { type: Number, default: 0, min: 0, max: 5 },
-  totalReviews: { type: Number, default: 0 }
+  totalReviews: { type: Number, default: 0 },
+  // Track last login for missed notifications
+  lastLoginDate: { type: Date, default: Date.now }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

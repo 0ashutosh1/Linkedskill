@@ -4,7 +4,8 @@ const Role = require('../models/Role');
 const Notification = require('../models/Notification');
 const { 
   scheduleClassGoLive, 
-  scheduleClassReminder, 
+  scheduleClassReminder,
+  scheduleNoShowCheck,
   scheduleClassEnd, 
   cancelClassJobs 
 } = require('../lib/agendaHelpers');
@@ -43,6 +44,7 @@ exports.createClass = async (req, res) => {
     try {
       await scheduleClassGoLive(newClass);
       await scheduleClassReminder(newClass);
+      await scheduleNoShowCheck(newClass); // Check if instructor shows up
       await scheduleClassEnd(newClass);
     } catch (jobError) {
       console.error('⚠️  Error scheduling class jobs:', jobError);
@@ -332,6 +334,8 @@ exports.updateClass = async (req, res) => {
 exports.deleteClass = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('🗑️  DELETE request received for class ID:', id);
+    console.log('🔐 User ID from token:', req.user?.sub);
     
     // Single query with authorization check and deletion
     const classData = await Class.findOneAndDelete({ 
@@ -340,6 +344,7 @@ exports.deleteClass = async (req, res) => {
     });
     
     if (!classData) {
+      console.log('❌ Class not found or user not authorized');
       return res.status(404).json({ error: 'Class not found or not authorized' });
     }
     

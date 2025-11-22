@@ -240,6 +240,13 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
               <span className="text-white text-xs font-bold">● LIVE</span>
             </div>
           )}
+          
+          {/* Cancelled Badge */}
+          {status === 'cancelled' && (
+            <div className="absolute top-3 left-3 bg-orange-500 rounded-full px-2 py-1">
+              <span className="text-white text-xs font-bold">❌ CANCELLED</span>
+            </div>
+          )}
         </div>
 
           {/* Content Section */}

@@ -6,6 +6,7 @@ const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { initializeAgenda, stopAgenda } = require('./lib/scheduler');
 const { defineClassJobs } = require('./jobs/classJobs');
+const { defineRoadmapJobs, scheduleRoadmapJobs } = require('./jobs/roadmapJobs');
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/class');
 const notificationRoutes = require('./routes/notification');
@@ -19,6 +20,8 @@ const expertsRoutes = require('./routes/experts');
 const videosdkRoutes = require('./routes/videosdk');
 const jobsRoutes = require('./routes/jobs');
 const reviewRoutes = require('./routes/review');
+const roadmapRoutes = require('./routes/roadmap');
+const counsellingRoutes = require('./routes/counselling');
 const fs = require('fs');
 const path = require('path');
 
@@ -27,12 +30,17 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: "http://localhost:5173", // Vite dev server
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 app.use('/auth', authRoutes);
@@ -48,6 +56,8 @@ app.use('/experts', expertsRoutes);
 app.use('/videosdk', videosdkRoutes);
 app.use('/jobs', jobsRoutes);
 app.use('/reviews', reviewRoutes);
+app.use('/roadmaps', roadmapRoutes);
+app.use('/counselling', counsellingRoutes);
 
 app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Auth API running' });
@@ -235,6 +245,13 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     try {
       const agenda = await initializeAgenda(MONGODB_URI);
       defineClassJobs(agenda);
+      defineRoadmapJobs(agenda);
+      await scheduleRoadmapJobs(agenda);
+      
+      // Schedule daily cleanup of old class notifications at midnight
+      await agenda.every('0 0 * * *', 'cleanup_old_class_notifications');
+      console.log('✅ Scheduled daily cleanup of old class notifications (midnight)');
+      
       console.log('✅ Agenda jobs defined and ready');
       
       // Make agenda available globally for controllers

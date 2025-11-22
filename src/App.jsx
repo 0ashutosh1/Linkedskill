@@ -12,6 +12,8 @@ import OnboardingPage from './components/OnboardingPage'
 import AllClassesPage from './components/AllClassesPage'
 import LiveClassPage from './components/LiveClassPage'
 import LandingPage from './components/LandingPage'
+import MentoringPage from './components/MentoringPage'
+import CounsellingPage from './components/CounsellingPage'
 
 import Sidebar from './components/Sidebar'
 import RightPanel from './components/RightPanel'
@@ -75,6 +77,13 @@ export default function App() {
   // All Classes page state
   const [allClassesData, setAllClassesData] = useState(null)
   const [allClassesCategory, setAllClassesCategory] = useState(null)
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  // Roadmap reminder state
+  const [showRoadmapReminder, setShowRoadmapReminder] = useState(false)
+  const [roadmapReminder, setRoadmapReminder] = useState(null)
 
   // Fetch connected experts
   const fetchConnectedExperts = useCallback(async () => {
@@ -590,8 +599,51 @@ export default function App() {
       fetchUpcomingClasses()
       fetchClassesByCategories()
       fetchUnreadCount() // Fetch notifications when on home
+      checkRoadmapReminder() // Check for roadmap reminders
     }
   }, [isAuthenticated, route, fetchConnectedExperts, fetchUpcomingClasses, fetchClassesByCategories, fetchUnreadCount])
+
+  // Check for roadmap reminders
+  const checkRoadmapReminder = async () => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) return
+
+      const response = await fetch('http://localhost:4000/roadmaps/my/active', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const roadmap = data.roadmap
+
+        if (roadmap) {
+          const currentWeek = roadmap.weeks.find(w => w.weekNumber === roadmap.currentWeek)
+          if (currentWeek) {
+            const incompleteTasks = currentWeek.tasks.filter(t => !t.completed)
+            if (incompleteTasks.length > 0) {
+              // Check if we've shown reminder today
+              const lastShown = localStorage.getItem('lastRoadmapReminderHome')
+              const today = new Date().toDateString()
+              
+              if (lastShown !== today) {
+                setRoadmapReminder({
+                  roadmap,
+                  week: currentWeek,
+                  task: incompleteTasks[0],
+                  totalIncomplete: incompleteTasks.length
+                })
+                setShowRoadmapReminder(true)
+                localStorage.setItem('lastRoadmapReminderHome', today)
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking roadmap reminder:', error)
+    }
+  }
 
   // Poll for notifications every 30 seconds when authenticated
   useEffect(() => {
@@ -1126,6 +1178,8 @@ export default function App() {
                   <div className="relative w-full sm:max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl">
                     <input 
                       placeholder="Search courses..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full border border-slate-600/50 rounded-full 
                                 pl-3 xs:pl-4 pr-9 xs:pr-10 
                                 py-1.5 xs:py-2 sm:py-2.5 
@@ -1134,6 +1188,18 @@ export default function App() {
                                 bg-slate-800/80 backdrop-blur-sm text-gray-200 placeholder-gray-500 
                                 shadow-sm hover:shadow-md transition-shadow" 
                     />
+                    {searchTerm && (
+                      <button 
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-8 xs:right-9 sm:right-10 top-1/2 -translate-y-1/2 
+                                   text-gray-400 hover:text-red-400 transition-colors"
+                        title="Clear search"
+                      >
+                        <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    )}
                     <button className="absolute right-2 xs:right-3 top-1/2 -translate-y-1/2 
                                        text-gray-400 hover:text-gray-300 transition-colors">
                       <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1217,6 +1283,63 @@ export default function App() {
                                     flex-shrink-0 border border-white/15" />
                   </div>
                 </section>
+
+          {/* Show search results message at the top */}
+          {searchTerm && !categoriesLoading && (
+            <>
+              {categoriesWithClasses.every(cat => {
+                const filteredClasses = cat.classes.filter(cls => {
+                  const search = searchTerm.toLowerCase()
+                  return cls.title?.toLowerCase().includes(search) ||
+                         cls.description?.toLowerCase().includes(search) ||
+                         cls.tag?.toLowerCase().includes(search) ||
+                         cls.author?.toLowerCase().includes(search)
+                })
+                return filteredClasses.length === 0
+              }) && upcomingClasses.filter(cls => {
+                const search = searchTerm.toLowerCase()
+                return cls.title?.toLowerCase().includes(search) ||
+                       cls.description?.toLowerCase().includes(search) ||
+                       cls.categoryId?.name?.toLowerCase().includes(search) ||
+                       cls.userId?.name?.toLowerCase().includes(search)
+              }).length === 0 ? (
+                <div className="mb-6 text-center py-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl">
+                  <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full p-6 mx-auto w-20 h-20 mb-4 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    No Classes Found
+                  </h4>
+                  <p className="text-gray-400 mb-4">
+                    No classes match your search for "<span className="font-semibold text-blue-400">{searchTerm}</span>"
+                  </p>
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 
+                              text-white px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 
+                              shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    Clear Search
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-6 text-center py-4 bg-slate-800/30 backdrop-blur-sm border border-slate-700/30 rounded-xl">
+                  <p className="text-gray-300">
+                    Showing results for "<span className="font-semibold text-blue-400">{searchTerm}</span>"
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="ml-3 text-sm text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Clear
+                    </button>
+                  </p>
+                </div>
+              )}
+            </>
+          )}
 
           <CategorySection onCategoryClick={handleCategoryClick} selectedCategory={selectedCategory} onClearCategory={handleClearCategory} />
 
@@ -1303,7 +1426,16 @@ export default function App() {
           {/* Upcoming Classes - Dynamic Data */}
           <CarouselSection 
             title="My Upcoming Classes"
-            classes={(showAllUpcoming ? upcomingClasses : upcomingClasses.slice(0, 4)).map(cls => ({
+            classes={(showAllUpcoming ? upcomingClasses : upcomingClasses.slice(0, 4))
+              .filter(cls => {
+                if (!searchTerm.trim()) return true
+                const search = searchTerm.toLowerCase()
+                return cls.title?.toLowerCase().includes(search) ||
+                       cls.description?.toLowerCase().includes(search) ||
+                       cls.categoryId?.name?.toLowerCase().includes(search) ||
+                       cls.userId?.name?.toLowerCase().includes(search)
+              })
+              .map(cls => ({
               title: cls.title,
               tag: cls.categoryId?.name || 'General',
               author: cls.userId?.name || 'Expert Instructor',
@@ -1352,8 +1484,22 @@ export default function App() {
             // Render categories with classes dynamically
             categoriesWithClasses.map((category, index) => {
               const isExpanded = expandedCategories.has(category.name)
-              const displayClasses = isExpanded ? category.classes : category.classes.slice(0, 4)
-              const hasMoreClasses = category.classes.length > 4
+              
+              // Filter classes based on search term
+              const filteredClasses = category.classes.filter(cls => {
+                if (!searchTerm.trim()) return true
+                const search = searchTerm.toLowerCase()
+                return cls.title?.toLowerCase().includes(search) ||
+                       cls.description?.toLowerCase().includes(search) ||
+                       cls.tag?.toLowerCase().includes(search) ||
+                       cls.author?.toLowerCase().includes(search)
+              })
+              
+              const displayClasses = isExpanded ? filteredClasses : filteredClasses.slice(0, 4)
+              const hasMoreClasses = filteredClasses.length > 4
+              
+              // Don't render category if no classes match the search
+              if (searchTerm.trim() && filteredClasses.length === 0) return null
               
               return (
                 <div key={category.name} className="mt-8 mb-8">
@@ -1373,7 +1519,7 @@ export default function App() {
           )}
 
           {/* Show message if no categories have classes */}
-          {!categoriesLoading && categoriesWithClasses.length === 0 && (
+          {!categoriesLoading && categoriesWithClasses.length === 0 && !searchTerm && (
             <div className="mt-8 mb-8 text-center py-12">
               <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-full p-8 mx-auto w-24 h-24 mb-6 flex items-center justify-center">
                 <svg className="w-12 h-12 text-purple-600 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1417,6 +1563,10 @@ export default function App() {
               />
             ) : route === 'experts' ? (
               <ExpertsPage onBack={() => setRoute('home')} />
+            ) : route === 'mentoring' ? (
+              <MentoringPage onBack={() => setRoute('home')} />
+            ) : route === 'counselling' || route === 'counsellings' ? (
+              <CounsellingPage onBack={() => setRoute('home')} />
             ) : route === 'expert-reviews' && selectedExpertForReviews ? (
               <ExpertReviewsPage 
                 expertId={selectedExpertForReviews.id}
@@ -1476,6 +1626,62 @@ export default function App() {
           onAction={handleNotificationAction}
         />
       ))}
+
+      {/* Roadmap Daily Reminder Popup */}
+      {showRoadmapReminder && roadmapReminder && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-orange-500 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-pulse-slow">
+            <div className="text-center mb-6">
+              <div className="inline-block p-4 bg-orange-500/20 rounded-full mb-4">
+                <svg className="w-16 h-16 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">⏰ Daily Reminder!</h3>
+              <p className="text-orange-400 font-semibold">Keep your streak alive! 🔥</p>
+            </div>
+
+            <div className="bg-slate-700/50 rounded-xl p-4 mb-6 border border-slate-600">
+              <p className="text-gray-300 text-sm mb-3">
+                You have <span className="font-bold text-orange-400">{roadmapReminder.totalIncomplete} pending task{roadmapReminder.totalIncomplete > 1 ? 's' : ''}</span> this week:
+              </p>
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-orange-500/30">
+                <h4 className="font-bold text-white mb-2">{roadmapReminder.task.title}</h4>
+                <p className="text-sm text-gray-400 mb-2">{roadmapReminder.task.description}</p>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span>📅 Week {roadmapReminder.week.weekNumber}</span>
+                  <span>⏱️ {roadmapReminder.task.estimatedHours}h</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowRoadmapReminder(false);
+                  setRoute('mentoring');
+                }}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 
+                         text-white px-6 py-4 rounded-xl font-bold transition-all duration-200 
+                         shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                📝 Go to My Roadmap
+              </button>
+              <button
+                onClick={() => setShowRoadmapReminder(false)}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-gray-300 px-6 py-3 rounded-xl 
+                         font-semibold transition-all duration-200"
+              >
+                Remind Me Later
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-500 mt-4">
+              Current Streak: <span className="text-orange-400 font-bold">{roadmapReminder.roadmap.streak} day{roadmapReminder.roadmap.streak !== 1 ? 's' : ''}</span> 🔥
+            </p>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )

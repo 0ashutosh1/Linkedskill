@@ -1,8 +1,52 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Class = require('../models/Class');
+const Notification = require('../models/Notification');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+
+// Helper function to check for missed classes
+const checkMissedClasses = async (userId, lastLoginDate) => {
+  try {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Only check if user was away for more than 1 day
+    if (!lastLoginDate || new Date(lastLoginDate) > oneDayAgo) {
+      return;
+    }
+
+    // Find classes that ended while user was away
+    const missedClasses = await Class.find({
+      status: 'ended',
+      endTime: {
+        $gte: lastLoginDate,
+        $lte: now
+      },
+      attendees: userId
+    }).select('title startTime endTime');
+
+    if (missedClasses.length > 0) {
+      // Create a summary notification
+      const classNames = missedClasses.map(c => c.title).slice(0, 3).join(', ');
+      const moreCount = missedClasses.length > 3 ? ` and ${missedClasses.length - 3} more` : '';
+      
+      const notification = new Notification({
+        type: 'info',
+        message: `📚 You missed ${missedClasses.length} class${missedClasses.length > 1 ? 'es' : ''} while you were away: ${classNames}${moreCount}`,
+        receiverId: userId,
+        senderId: userId,
+        priority: 'normal'
+      });
+
+      await notification.save();
+      console.log(`✅ Created missed classes notification for user ${userId}`);
+    }
+  } catch (error) {
+    console.error('Error checking missed classes:', error);
+  }
+};
 
 exports.signup = async (req, res) => {
   const { email, password, name, phoneNo, roleId } = req.body;
@@ -61,6 +105,14 @@ exports.login = async (req, res) => {
     }
 
     console.log('Login successful for:', email);
+    
+    // Check for missed classes before updating lastLoginDate
+    await checkMissedClasses(user._id, user.lastLoginDate);
+    
+    // Update last login date
+    user.lastLoginDate = new Date();
+    await user.save();
+    
     const token = jwt.sign({ sub: user._id.toString(), email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ 
       token, 

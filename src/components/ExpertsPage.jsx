@@ -11,6 +11,7 @@ export default function ExpertsPage({ onBack }) {
   const [error, setError] = useState('')
   const [connectionStatuses, setConnectionStatuses] = useState({})
   const [connectingExperts, setConnectingExperts] = useState(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Memoize current user to avoid recalculation
   const currentUser = useMemo(() => getCurrentUser(), [])
@@ -174,6 +175,20 @@ export default function ExpertsPage({ onBack }) {
     }
   }, [connectionStatuses, connectingExperts])
 
+  // Filter experts based on search query
+  const filteredExperts = useMemo(() => {
+    if (!searchQuery.trim()) return experts
+    
+    const query = searchQuery.toLowerCase()
+    return experts.filter(expert => {
+      const name = expert.userId?.name?.toLowerCase() || expert.name?.toLowerCase() || ''
+      const bio = expert.bio?.toLowerCase() || ''
+      const expertise = expert.expertise?.toLowerCase() || ''
+      
+      return name.includes(query) || bio.includes(query) || expertise.includes(query)
+    })
+  }, [experts, searchQuery])
+
   if (loading) {
     return (
       <div className="animate-fadeIn flex items-center justify-center min-h-96">
@@ -243,13 +258,74 @@ export default function ExpertsPage({ onBack }) {
         </p>
       </div>
 
-      {/* Optimized responsive grid with will-change for smooth animations */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 
-                      gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-8 
-                      px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 
-                      max-w-8xl mx-auto"
-           style={{ contain: 'layout style paint' }}>
-        {experts.map((expert, index) => {
+      {/* Search Bar */}
+      <div className="max-w-2xl mx-auto mb-8 px-4 sm:px-6 lg:px-8">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search experts by name, expertise, or bio..."
+            className="w-full pl-12 pr-4 py-3 sm:py-4 text-sm sm:text-base
+                     bg-white border border-gray-200 rounded-xl sm:rounded-2xl
+                     text-gray-900
+                     focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                     shadow-sm hover:shadow-md transition-all duration-200
+                     placeholder-gray-400"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="mt-3 text-sm text-gray-600 text-center">
+            Found {filteredExperts.length} expert{filteredExperts.length !== 1 ? 's' : ''} matching "{searchQuery}"
+          </p>
+        )}
+      </div>
+
+      {/* Show message if search returns no results */}
+      {filteredExperts.length === 0 ? (
+        <div className="flex items-center justify-center py-20 px-4">
+          <div className="text-center max-w-md">
+            <div className="text-gray-300 mb-6">
+              <svg className="mx-auto h-20 w-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-3">No Experts Found</h3>
+            <p className="text-gray-500 mb-4">
+              No experts match your search "{searchQuery}"
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-purple-600 hover:text-purple-700 font-medium"
+            >
+              Clear search
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Optimized responsive grid with will-change for smooth animations */}
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 
+                          gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-8 
+                          px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 
+                          max-w-8xl mx-auto"
+               style={{ contain: 'layout style paint' }}>
+            {filteredExperts.map((expert, index) => {
           const expertId = expert.userId._id
           const buttonInfo = getConnectionButtonInfo(expertId)
           const isConnecting = connectingExperts.has(expertId)
@@ -552,6 +628,8 @@ export default function ExpertsPage({ onBack }) {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

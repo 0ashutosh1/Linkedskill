@@ -5,7 +5,8 @@ const notificationSchema = new mongoose.Schema({
     type: String, 
     enum: ['info', 'warning', 'error', 'success', 'reminder', 'update', 'announcement', 'message', 
            'connection_request', 'connection_accepted', 'connection_rejected',
-           'class_reminder', 'class_started', 'class_ended', 'review_reminder'],
+           'class_reminder', 'class_started', 'class_ended', 'review_reminder',
+           'roadmap_created', 'roadmap_reminder', 'roadmap_deadline', 'roadmap_task_completed'],
     required: true 
   },
   message: { 
@@ -20,7 +21,7 @@ const notificationSchema = new mongoose.Schema({
   senderId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
-    required: true 
+    required: false 
   },
   receiverId: { 
     type: mongoose.Schema.Types.ObjectId, 

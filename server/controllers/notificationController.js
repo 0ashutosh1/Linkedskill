@@ -41,12 +41,25 @@ exports.getMyNotifications = async (req, res) => {
       .populate('senderId', 'name email')
       .sort({ createdAt: -1 });
     
+    // Filter out stale class notifications (started/ended/live) that are more than 2 hours old
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    
+    const filteredNotifications = notifications.filter(notification => {
+      const isClassNotification = ['class_started', 'class_ended', 'class_reminder'].includes(notification.type);
+      const isOld = new Date(notification.createdAt) < twoHoursAgo;
+      
+      // Keep notification if it's NOT a class notification OR if it's recent
+      return !isClassNotification || !isOld;
+    });
+    
     console.log('Found notifications:', notifications.length);
-    if (notifications.length > 0) {
-      console.log('Sample notification receiverId:', notifications[0].receiverId, 'Type:', typeof notifications[0].receiverId);
+    console.log('After filtering stale class notifications:', filteredNotifications.length);
+    if (filteredNotifications.length > 0) {
+      console.log('Sample notification receiverId:', filteredNotifications[0].receiverId, 'Type:', typeof filteredNotifications[0].receiverId);
     }
     console.log('==========================================');
-    res.json({ notifications });
+    res.json({ notifications: filteredNotifications });
   } catch (err) {
     console.error('Error fetching notifications:', err);
     res.status(500).json({ error: 'Server error' });

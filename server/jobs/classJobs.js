@@ -9,8 +9,8 @@ const Review = require('../models/Review');
 function defineClassJobs(agenda) {
   /**
    * Job: class_go_live
-   * Automatically sets a class status to 'live' at its scheduled start time
-   * Sends notifications to all attendees
+   * Sends notifications that class time has arrived
+   * Does NOT automatically set status to live - instructor must start broadcast
    */
   agenda.define(
     'class_go_live',
@@ -30,17 +30,14 @@ function defineClassJobs(agenda) {
           return;
         }
 
-        // Update class status to 'live'
-        classData.status = 'live';
-        await classData.save();
-        console.log(`🔴 LIVE NOW: Class "${classData.title}" (${classId}) is now live`);
+        console.log(`⏰ Class time arrived for "${classData.title}" (${classId}) - waiting for instructor`);
 
-        // Send notifications to all attendees
+        // Send notifications to all attendees that class time has arrived
         try {
           if (classData.attendees && classData.attendees.length > 0) {
             const notifications = classData.attendees.map((attendeeId) => ({
-              type: 'class_started',
-              message: `🔴 LIVE NOW: "${classData.title}" has started! Join now.`,
+              type: 'class_time_arrived',
+              message: `⏰ "${classData.title}" is scheduled to start now. Waiting for instructor to begin...`,
               senderId: classData.userId,
               receiverId: attendeeId,
               priority: 'high',
@@ -48,10 +45,10 @@ function defineClassJobs(agenda) {
             }));
 
             await Notification.insertMany(notifications);
-            console.log(`📢 Sent notifications to ${notifications.length} attendees`);
+            console.log(`📢 Sent time-arrived notifications to ${notifications.length} attendees`);
           }
         } catch (notificationError) {
-          console.error('⚠️  Error sending start notifications:', notificationError);
+          console.error('⚠️  Error sending notifications:', notificationError);
           // Don't fail the job if notifications fail
         }
       } catch (err) {
@@ -178,6 +175,78 @@ function defineClassJobs(agenda) {
   );
 
   /**
+   * Job: class_check_no_show
+   * Checks if instructor started the class within grace period (15 minutes)
+   * If not started, marks class as cancelled due to instructor no-show
+   */
+  agenda.define(
+    'class_check_no_show',
+    async (job) => {
+      const { classId } = job.attrs.data;
+
+      try {
+        const classData = await Class.findById(classId);
+
+        if (!classData) {
+          throw new Error(`Class not found: ${classId}`);
+        }
+
+        // Only check if class is still scheduled (not started by instructor)
+        if (classData.status !== 'scheduled') {
+          console.log(`✅ Class ${classId} was started by instructor (status: ${classData.status})`);
+          return;
+        }
+
+        // Class is still scheduled after grace period - instructor didn't show up
+        console.log(`⚠️ INSTRUCTOR NO-SHOW: Class "${classData.title}" (${classId}) was not started`);
+        
+        classData.status = 'cancelled';
+        classData.cancellationReason = 'instructor_no_show';
+        await classData.save();
+
+        // Notify all attendees about the cancellation
+        try {
+          if (classData.attendees && classData.attendees.length > 0) {
+            const notifications = classData.attendees.map((attendeeId) => ({
+              type: 'class_cancelled',
+              message: `❌ Class "${classData.title}" has been cancelled - the instructor did not show up. You have been automatically unregistered.`,
+              senderId: classData.userId,
+              receiverId: attendeeId,
+              priority: 'high',
+              createdAt: new Date()
+            }));
+
+            await Notification.insertMany(notifications);
+            console.log(`📢 Sent cancellation notifications to ${notifications.length} attendees`);
+          }
+
+          // Notify the instructor as well
+          const instructorNotification = new Notification({
+            type: 'class_no_show_alert',
+            message: `⚠️ Your class "${classData.title}" was automatically cancelled because you did not start it within 15 minutes of the scheduled time.`,
+            receiverId: classData.userId,
+            priority: 'high',
+            createdAt: new Date()
+          });
+          await instructorNotification.save();
+          console.log(`📢 Sent no-show alert to instructor`);
+        } catch (notificationError) {
+          console.error('⚠️  Error sending cancellation notifications:', notificationError);
+        }
+      } catch (err) {
+        console.error(`❌ Error in class_check_no_show job for ${classId}:`, err);
+        throw err;
+      }
+    },
+    {
+      priority: 'high',
+      concurrency: 10,
+      lockLifetime: 5 * 60 * 1000,
+      shouldSaveResult: true
+    }
+  );
+
+  /**
    * Job: class_send_review_reminder
    * Sends review reminder to students who haven't reviewed yet
    * Runs 5 minutes after class ends
@@ -249,6 +318,37 @@ function defineClassJobs(agenda) {
       concurrency: 5,
       lockLifetime: 3 * 60 * 1000,
       shouldSaveResult: true
+    }
+  );
+
+  /**
+   * Job: cleanup_old_class_notifications
+   * Deletes class notifications (started/ended/reminder) older than 4 hours
+   * Runs daily at midnight
+   */
+  agenda.define(
+    'cleanup_old_class_notifications',
+    async (job) => {
+      try {
+        console.log('🧹 Running cleanup for old class notifications...');
+        
+        const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+        
+        const result = await Notification.deleteMany({
+          type: { $in: ['class_started', 'class_ended', 'class_reminder', 'class_time_arrived'] },
+          createdAt: { $lt: fourHoursAgo }
+        });
+        
+        console.log(`✅ Deleted ${result.deletedCount} old class notifications`);
+      } catch (err) {
+        console.error('❌ Error in cleanup_old_class_notifications job:', err);
+        throw err;
+      }
+    },
+    {
+      priority: 'low',
+      concurrency: 1,
+      lockLifetime: 5 * 60 * 1000
     }
   );
 }

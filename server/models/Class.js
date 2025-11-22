@@ -18,6 +18,11 @@ const classSchema = new mongoose.Schema({
     enum: ['scheduled', 'live', 'completed', 'cancelled'], 
     default: 'scheduled' 
   },
+  cancellationReason: { 
+    type: String, 
+    enum: ['instructor_no_show', 'instructor_cancelled', 'other'],
+    required: false
+  },
   liveUrl: { type: String, default: '' }, // URL for live class (e.g., Zoom, Meet, etc.)
   meetingId: { type: String, default: null }, // VideoSDK meeting room ID
   

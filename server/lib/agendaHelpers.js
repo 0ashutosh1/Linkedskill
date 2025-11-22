@@ -63,6 +63,35 @@ async function scheduleClassReminder(classData) {
 }
 
 /**
+ * Schedule a no-show check 15 minutes after class start time
+ * If instructor hasn't started the class, it will be automatically cancelled
+ * @param {Object} classData - The class document
+ * @returns {Promise<void>}
+ */
+async function scheduleNoShowCheck(classData) {
+  const agenda = global.agenda;
+  
+  if (!agenda) {
+    console.warn('⚠️  Agenda not available, skipping no-show check scheduling');
+    return;
+  }
+
+  try {
+    // Calculate no-show check time (15 minutes after scheduled start)
+    const checkTime = new Date(classData.startTime.getTime() + 15 * 60 * 1000);
+
+    await agenda.schedule(checkTime, 'class_check_no_show', {
+      classId: classData._id.toString()
+    });
+
+    console.log(`✅ Scheduled class_check_no_show job for class "${classData.title}" at ${checkTime}`);
+  } catch (err) {
+    console.error('❌ Error scheduling class_check_no_show job:', err);
+    throw err;
+  }
+}
+
+/**
  * Schedule a class session end job
  * @param {Object} classData - The class document
  * @param {number} durationMinutes - Duration of the class in minutes
@@ -122,6 +151,7 @@ async function cancelClassJobs(classId) {
 module.exports = {
   scheduleClassGoLive,
   scheduleClassReminder,
+  scheduleNoShowCheck,
   scheduleClassEnd,
   cancelClassJobs
 };
