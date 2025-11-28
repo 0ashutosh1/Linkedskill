@@ -290,14 +290,17 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
 
             {/* Stats and Details */}
             <div className="space-y-2">
-              <div className="flex items-center text-xs">
-                <div className="flex items-center gap-1 text-gray-600">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                  <span>{learners || '0'} students</span>
+              {!isOwner && (
+                <div className="flex items-center justify-between text-xs">
+                  <button className="flex items-center gap-1 text-purple-600 hover:text-purple-700 font-semibold transition-colors">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
+                    </svg>
+                    Interested
+                  </button>
+                  <span className="text-gray-600">{attendees?.length || 2} students</span>
                 </div>
-              </div>
+              )}
               
               <div className="text-xs text-gray-500">
                 <p>By: {author}</p>

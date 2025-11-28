@@ -58,6 +58,10 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
     const responseText = chatCompletion.choices[0]?.message?.content || '';
     console.log('📝 Groq AI Response received, parsing...');
     
+    if (!responseText) {
+      throw new Error('Empty response from AI');
+    }
+    
     // Clean response (remove markdown code blocks if present)
     let cleanedResponse = responseText.trim();
     if (cleanedResponse.startsWith('```json')) {
@@ -67,7 +71,13 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
     }
     
     const aiRoadmap = JSON.parse(cleanedResponse);
-    console.log(`✅ Generated roadmap with ${aiRoadmap.weeks.length} weeks`);
+    
+    // Validate the response structure
+    if (!aiRoadmap.weeks || !Array.isArray(aiRoadmap.weeks) || aiRoadmap.weeks.length === 0) {
+      throw new Error('Invalid AI response structure: missing or empty weeks array');
+    }
+    
+    console.log(`✅ Generated AI roadmap with ${aiRoadmap.weeks.length} weeks`);
     
     return aiRoadmap;
   } catch (error) {
@@ -78,15 +88,42 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
     const weeks = [];
     const tasksPerWeek = Math.max(3, Math.ceil(15 / duration));
     
+    // Better task templates based on phase
+    const taskTemplates = {
+      Foundation: [
+        'Research and understand the fundamentals',
+        'Learn basic terminology and concepts',
+        'Study foundational resources and materials',
+        'Practice basic skills and techniques',
+        'Complete introductory exercises'
+      ],
+      Intermediate: [
+        'Apply concepts to practical scenarios',
+        'Build a small project or case study',
+        'Develop intermediate-level skills',
+        'Analyze real-world examples',
+        'Practice advanced techniques'
+      ],
+      Advanced: [
+        'Master advanced concepts and strategies',
+        'Complete a comprehensive project',
+        'Refine and perfect your skills',
+        'Study expert-level materials',
+        'Prepare for professional work'
+      ]
+    };
+    
     for (let i = 1; i <= duration; i++) {
       const weekTasks = [];
       const phase = i <= duration/3 ? 'Foundation' : i <= 2*duration/3 ? 'Intermediate' : 'Advanced';
+      const templates = taskTemplates[phase];
       
       for (let j = 1; j <= tasksPerWeek; j++) {
+        const taskTitle = templates[(j - 1) % templates.length];
         weekTasks.push({
           taskId: `week${i}_task${j}`,
-          title: `${phase} Task ${j}`,
-          description: `Complete this ${phase.toLowerCase()} milestone for ${careerGoal}`,
+          title: taskTitle,
+          description: `${taskTitle} related to ${careerGoal}. Focus on building practical skills and knowledge.`,
           estimatedHours: Math.floor(Math.random() * 5) + 3,
           completed: false
         });

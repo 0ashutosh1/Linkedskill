@@ -80,7 +80,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
               <a href="#how-it-works" className="text-gray-300 hover:text-white transition-colors">How It Works</a>
-              <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors">Testimonials</a>
+              <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Get Started</a>
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -122,7 +122,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-full mb-6 sm:mb-8 backdrop-blur-sm"
             >
               <span className="w-2 h-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full mr-2 animate-pulse"></span>
-              <span className="text-sm sm:text-base text-violet-300 font-medium">🚀 Join 10,000+ Active Learners</span>
+              <span className="text-sm sm:text-base text-violet-300 font-medium">🚀 Join 1,000+ Active Learners</span>
             </motion.div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 sm:mb-8 leading-tight px-4">
@@ -133,9 +133,9 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-400 mb-8 sm:mb-12 max-w-4xl mx-auto px-4 leading-relaxed">
-              Connect with world-class experts in real-time. Master new skills through 
-              <span className="text-purple-400 font-semibold"> interactive live classes</span>, personalized 
-              mentorship, and a thriving community of learners.
+              Connect with verified experts in real-time. Learn through 
+              <span className="text-purple-400 font-semibold"> HD video classes</span>, AI-powered career guidance, 
+              personalized learning roadmaps, and direct mentorship.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center px-4 mb-12 sm:mb-16">
@@ -174,9 +174,9 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               animate="animate"
             >
               {[
-                { icon: '🎓', title: '10K+', desc: 'Active Students', color: 'from-blue-500 to-cyan-500' },
-                { icon: '👨‍🏫', title: '500+', desc: 'Expert Instructors', color: 'from-violet-500 to-purple-500' },
-                { icon: '📚', title: '1K+', desc: 'Live Classes', color: 'from-fuchsia-500 to-pink-500' },
+                { icon: '🎓', title: '1000+', desc: 'Active Students', color: 'from-blue-500 to-cyan-500' },
+                { icon: '👨‍🏫', title: '50+', desc: 'Expert Instructors', color: 'from-violet-500 to-purple-500' },
+                { icon: '📚', title: '100+', desc: 'Live Classes', color: 'from-fuchsia-500 to-pink-500' },
                 { icon: '⭐', title: '4.9/5', desc: 'Average Rating', color: 'from-amber-500 to-orange-500' }
               ].map((stat, idx) => (
                 <motion.div
@@ -260,20 +260,14 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 icon: '🎥',
                 title: 'Live Video Classes',
-                desc: 'Crystal-clear HD video sessions with interactive features powered by industry-leading VideoSDK technology',
+                desc: 'Crystal-clear HD video sessions with interactive features for an immersive learning experience',
                 gradient: 'from-blue-500 to-cyan-500'
               },
               {
                 icon: '💬',
                 title: 'Real-Time Chat',
-                desc: 'Instant messaging powered by Socket.IO for seamless communication before, during, and after classes',
+                desc: 'Instant messaging for seamless communication with experts before, during, and after classes',
                 gradient: 'from-violet-500 to-purple-500'
-              },
-              {
-                icon: '📅',
-                title: 'Smart Scheduling',
-                desc: 'AI-powered scheduling with Agenda.js that automatically manages class timings and sends reminders',
-                gradient: 'from-fuchsia-500 to-pink-500'
               },
               {
                 icon: '🔔',
@@ -284,32 +278,20 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 icon: '👥',
                 title: 'Expert Network',
-                desc: 'Connect with 500+ verified industry professionals and build lasting mentorship relationships',
+                desc: 'Connect with 50+ verified industry professionals and build lasting mentorship relationships',
                 gradient: 'from-emerald-500 to-green-500'
               },
               {
-                icon: '🎯',
-                title: 'Personalized Learning',
-                desc: 'Browse courses by category, skill level, and interests with smart recommendations just for you',
+                icon: '🤖',
+                title: 'AI Career Counselling',
+                desc: 'AI-powered personalized career guidance. Answer questions about your goals and receive tailored advice',
                 gradient: 'from-rose-500 to-red-500'
               },
               {
-                icon: '📊',
-                title: 'Progress Analytics',
-                desc: 'Track your learning journey with detailed insights, achievements, and performance metrics',
-                gradient: 'from-indigo-500 to-blue-500'
-              },
-              {
-                icon: '🔒',
-                title: 'Bank-Level Security',
-                desc: 'Your data is protected with JWT authentication, encryption, and enterprise-grade security protocols',
-                gradient: 'from-slate-500 to-gray-500'
-              },
-              {
-                icon: '📱',
-                title: 'Cross-Platform',
-                desc: 'Learn anywhere on any device with our fully responsive design optimized for mobile, tablet, and desktop',
-                gradient: 'from-teal-500 to-cyan-500'
+                icon: '🗺️',
+                title: 'AI Learning Roadmaps',
+                desc: 'AI-generated weekly learning paths with tasks, points system, streak tracking, and progress monitoring',
+                gradient: 'from-amber-500 to-orange-500'
               }
             ].map((feature, idx) => (
               <motion.div
@@ -388,27 +370,27 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             {[
               {
                 step: '01',
-                title: 'Create Your Profile',
-                desc: 'Sign up in seconds and build your personalized profile. Choose your role - student eager to learn or expert ready to share knowledge. Add your skills, interests, and learning goals.',
+                title: 'Sign Up & Onboard',
+                desc: 'Quick signup with role selection (Student/Expert). Complete onboarding with interests and goals. Upload profile photo and start your learning journey.',
                 icon: '👤',
                 color: 'from-violet-500 to-purple-500',
                 features: ['Quick signup', 'Profile customization', 'Interest tags']
               },
               {
                 step: '02',
-                title: 'Discover & Connect',
-                desc: 'Browse through diverse categories and discover experts who match your interests. Send connection requests and schedule live classes at times that work for you.',
+                title: 'Connect & Schedule',
+                desc: 'Browse experts by category and send connection requests. Once accepted, use real-time chat to communicate and schedule video classes.',
                 icon: '🤝',
                 color: 'from-purple-500 to-fuchsia-500',
-                features: ['Browse experts', 'Smart matching', 'Flexible scheduling']
+                features: ['Browse by category', 'Connection system', 'Real-time chat']
               },
               {
                 step: '03',
-                title: 'Learn & Excel',
-                desc: 'Join live interactive sessions with HD video and real-time chat. Track your progress, earn achievements, and build lasting connections with mentors and peers.',
+                title: 'Learn & Review',
+                desc: 'Attend HD video classes with interactive features. After completion, rate and review your experience to help the community.',
                 icon: '🚀',
                 color: 'from-fuchsia-500 to-pink-500',
-                features: ['Live sessions', 'Progress tracking', 'Community']
+                features: ['Live HD classes', 'Review system', 'Rating experts']
               }
             ].map((step, idx) => (
               <motion.div
@@ -507,7 +489,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="relative py-20 sm:py-32 px-4 sm:px-6 lg:px-8 z-10">
+      {/* <section id="testimonials" className="relative py-20 sm:py-32 px-4 sm:px-6 lg:px-8 z-10">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -592,19 +574,16 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 <div className={`absolute inset-0 bg-gradient-to-br ${testimonial.gradient} opacity-0 group-hover:opacity-5 rounded-2xl sm:rounded-3xl transition-opacity duration-300`}></div>
                 
                 <div className="relative z-10">
-                  {/* Rating */}
                   <div className="flex gap-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
                       <span key={i} className="text-yellow-400 text-xl">⭐</span>
                     ))}
                   </div>
 
-                  {/* Quote */}
                   <p className="text-gray-300 mb-6 leading-relaxed italic">
                     "{testimonial.text}"
                   </p>
 
-                  {/* Author */}
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 bg-gradient-to-br ${testimonial.gradient} rounded-full flex items-center justify-center text-2xl`}>
                       {testimonial.avatar}
@@ -619,7 +598,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* User Types Section */}
       <section className="relative py-20 sm:py-32 px-4 sm:px-6 lg:px-8 z-10">
@@ -665,12 +644,12 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 </h3>
                 <ul className="space-y-4 text-gray-300 mb-8">
                   {[
-                    'Access 1,000+ live classes across 50+ categories',
-                    'Connect with 500+ verified industry experts',
-                    'Real-time HD video with interactive features',
-                    'Instant notifications & smart scheduling',
-                    'Track progress with detailed analytics',
-                    'Join a community of 10,000+ learners',
+                    'HD video classes with experts',
+                    'Real-time messaging',
+                    'AI career counselling',
+                    'Generate AI learning roadmaps',
+                    'Review system for experts & classes',
+                    'Profile photo upload'
                   ].map((item, i) => (
                     <motion.li
                       key={i}
@@ -715,12 +694,12 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 </h3>
                 <ul className="space-y-4 text-gray-300 mb-8">
                   {[
-                    'Create & schedule live classes in minutes',
-                    'Build your personal brand and following',
-                    'Automated scheduling with smart reminders',
-                    'Custom thumbnails & rich descriptions',
-                    'Real-time engagement tools & analytics',
-                    'Grow your professional network globally',
+                    'Create & schedule classes with ease',
+                    'HD video streaming',
+                    'Real-time chat with students',
+                    'Receive reviews & ratings',
+                    'Manage student connections',
+                    'Upload profile photo',
                   ].map((item, i) => (
                     <motion.li
                       key={i}
@@ -783,8 +762,8 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               </h2>
               
               <p className="text-lg sm:text-xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-                Join <span className="font-bold text-white">10,000+ students</span> and 
-                <span className="font-bold text-white"> 500+ experts</span> already transforming their lives through live learning.
+                Start your learning journey with <span className="font-bold text-white">AI-powered guidance</span>, 
+                <span className="font-bold text-white">live video classes</span>, and real mentorship connections.
                 <span className="block mt-2 text-violet-300 font-semibold">Start your journey today - completely free!</span>
               </p>
 
@@ -847,91 +826,6 @@ export default function LandingPage({ onGetStarted, onLogin }) {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-12 mb-12">
             {/* Brand */}
-            <div className="lg:col-span-2">
-              <motion.div 
-                className="flex items-center space-x-3 mb-6"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="relative w-10 h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50">
-                  <span className="text-white font-bold text-xl">LS</span>
-                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl blur-md opacity-50 -z-10"></div>
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
-                  LinkedSkill
-                </span>
-              </motion.div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
-                Empowering 10,000+ students and 500+ experts to connect, learn, and grow together through live interactive classes.
-              </p>
-              {/* Social Links */}
-              <div className="flex gap-4">
-                {[
-                  { icon: '𝕏', label: 'Twitter' },
-                  { icon: '📘', label: 'Facebook' },
-                  { icon: '📷', label: 'Instagram' },
-                  { icon: '💼', label: 'LinkedIn' }
-                ].map((social, idx) => (
-                  <motion.button
-                    key={idx}
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-10 h-10 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg flex items-center justify-center hover:border-purple-500/50 hover:bg-purple-500/10 transition-all duration-300"
-                    aria-label={social.label}
-                  >
-                    <span className="text-lg">{social.icon}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Platform */}
-            <div>
-              <h4 className="font-bold text-white mb-4 text-lg">Platform</h4>
-              <ul className="space-y-3 text-gray-400 text-sm">
-                {['For Students', 'For Experts', 'Browse Categories', 'How It Works', 'Pricing'].map((item, idx) => (
-                  <motion.li 
-                    key={idx}
-                    whileHover={{ x: 5, color: '#a855f7' }}
-                    className="hover:text-purple-400 cursor-pointer transition-all duration-200"
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-            
-            {/* Resources */}
-            <div>
-              <h4 className="font-bold text-white mb-4 text-lg">Resources</h4>
-              <ul className="space-y-3 text-gray-400 text-sm">
-                {['Help Center', 'Documentation', 'API Reference', 'Community Forum', 'Status'].map((item, idx) => (
-                  <motion.li 
-                    key={idx}
-                    whileHover={{ x: 5, color: '#a855f7' }}
-                    className="hover:text-purple-400 cursor-pointer transition-all duration-200"
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-            
-            {/* Company */}
-            <div>
-              <h4 className="font-bold text-white mb-4 text-lg">Company</h4>
-              <ul className="space-y-3 text-gray-400 text-sm">
-                {['About Us', 'Careers', 'Blog', 'Privacy Policy', 'Terms of Service'].map((item, idx) => (
-                  <motion.li 
-                    key={idx}
-                    whileHover={{ x: 5, color: '#a855f7' }}
-                    className="hover:text-purple-400 cursor-pointer transition-all duration-200"
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
           </div>
           
           {/* Bottom Bar */}
@@ -945,6 +839,20 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 whileHover={{ color: '#a855f7' }}
                 className="hover:text-purple-400 transition-colors"
               >
+                About Us
+              </motion.a>
+              <motion.a 
+                href="#" 
+                whileHover={{ color: '#a855f7' }}
+                className="hover:text-purple-400 transition-colors"
+              >
+                Contact
+              </motion.a>
+              <motion.a 
+                href="#" 
+                whileHover={{ color: '#a855f7' }}
+                className="hover:text-purple-400 transition-colors"
+              >
                 Privacy
               </motion.a>
               <motion.a 
@@ -953,13 +861,6 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 className="hover:text-purple-400 transition-colors"
               >
                 Terms
-              </motion.a>
-              <motion.a 
-                href="#" 
-                whileHover={{ color: '#a855f7' }}
-                className="hover:text-purple-400 transition-colors"
-              >
-                Cookies
               </motion.a>
             </div>
           </div>

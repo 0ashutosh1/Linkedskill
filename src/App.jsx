@@ -14,6 +14,7 @@ import LiveClassPage from './components/LiveClassPage'
 import LandingPage from './components/LandingPage'
 import MentoringPage from './components/MentoringPage'
 import CounsellingPage from './components/CounsellingPage'
+import SearchPage from './components/SearchPage'
 
 import Sidebar from './components/Sidebar'
 import RightPanel from './components/RightPanel'
@@ -239,9 +240,16 @@ export default function App() {
             }
           }).filter(category => category.classes.length > 0)
           
-          setCategoriesWithClasses(categoriesWithClassesData)
-          setCategoriesLoading(false)
-          return
+          // If user has interests but no matching classes, fall through to show all classes as "Recommended"
+          if (categoriesWithClassesData.length > 0) {
+            setCategoriesWithClasses(categoriesWithClassesData)
+            setCategoriesLoading(false)
+            return
+          } else {
+            console.log('📌 User has interests but no matching classes found, showing recommended classes instead')
+          }
+        } else if (personalizedData.personalized && personalizedData.classes.length === 0) {
+          console.log('📌 User has interests but no matching classes found, showing recommended classes instead')
         }
       } catch (personalizedError) {
         console.warn('Could not fetch personalized classes, falling back to all categories:', personalizedError)
@@ -1116,7 +1124,7 @@ export default function App() {
 
       {/* Main Layout Container - Fully responsive layout */}
       <div className="h-screen bg-slate-900/30 backdrop-blur-sm overflow-hidden flex flex-col">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0">
+        <div className="flex-1 flex lg:grid lg:grid-cols-12 overflow-hidden min-h-0">
           {/* Sidebar - Fully responsive fixed position with glassmorphism */}
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-50 
@@ -1153,12 +1161,13 @@ export default function App() {
 
           {/* Main Content Area - Fully responsive scrollable center content */}
           <main className={`
+            flex-1
             ${route === 'home' ? 'lg:col-span-8' : 'lg:col-span-10'} 
             pt-12 xs:pt-13 sm:pt-14 md:pt-16 lg:pt-0 
             px-2 xs:px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 2xl:px-10 
             py-3 xs:py-4 sm:py-5 md:py-6 lg:py-7 xl:py-8 2xl:py-10
-            lg:overflow-y-auto lg:overflow-x-hidden
-            min-h-screen lg:min-h-0 lg:h-full
+            overflow-y-auto overflow-x-hidden
+            min-h-0 h-full
           `}>
             {/* Enhanced fully responsive header with gradient */}
             {route !== 'experts' && (
@@ -1179,7 +1188,14 @@ export default function App() {
                     <input 
                       placeholder="Search courses..." 
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        if (e.target.value.trim() && route !== 'search') {
+                          setRoute('search');
+                        } else if (!e.target.value.trim() && route === 'search') {
+                          setRoute('home');
+                        }
+                      }}
                       className="w-full border border-slate-600/50 rounded-full 
                                 pl-3 xs:pl-4 pr-9 xs:pr-10 
                                 py-1.5 xs:py-2 sm:py-2.5 
@@ -1190,7 +1206,12 @@ export default function App() {
                     />
                     {searchTerm && (
                       <button 
-                        onClick={() => setSearchTerm('')}
+                        onClick={() => {
+                          setSearchTerm('');
+                          if (route === 'search') {
+                            setRoute('home');
+                          }
+                        }}
                         className="absolute right-8 xs:right-9 sm:right-10 top-1/2 -translate-y-1/2 
                                    text-gray-400 hover:text-red-400 transition-colors"
                         title="Clear search"
@@ -1200,8 +1221,14 @@ export default function App() {
                         </svg>
                       </button>
                     )}
-                    <button className="absolute right-2 xs:right-3 top-1/2 -translate-y-1/2 
-                                       text-gray-400 hover:text-gray-300 transition-colors">
+                    <button 
+                      onClick={() => {
+                        if (searchTerm.trim()) {
+                          setRoute('search');
+                        }
+                      }}
+                      className="absolute right-2 xs:right-3 top-1/2 -translate-y-1/2 
+                                 text-gray-400 hover:text-blue-400 transition-colors cursor-pointer">
                       <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                       </svg>
@@ -1283,63 +1310,6 @@ export default function App() {
                                     flex-shrink-0 border border-white/15" />
                   </div>
                 </section>
-
-          {/* Show search results message at the top */}
-          {searchTerm && !categoriesLoading && (
-            <>
-              {categoriesWithClasses.every(cat => {
-                const filteredClasses = cat.classes.filter(cls => {
-                  const search = searchTerm.toLowerCase()
-                  return cls.title?.toLowerCase().includes(search) ||
-                         cls.description?.toLowerCase().includes(search) ||
-                         cls.tag?.toLowerCase().includes(search) ||
-                         cls.author?.toLowerCase().includes(search)
-                })
-                return filteredClasses.length === 0
-              }) && upcomingClasses.filter(cls => {
-                const search = searchTerm.toLowerCase()
-                return cls.title?.toLowerCase().includes(search) ||
-                       cls.description?.toLowerCase().includes(search) ||
-                       cls.categoryId?.name?.toLowerCase().includes(search) ||
-                       cls.userId?.name?.toLowerCase().includes(search)
-              }).length === 0 ? (
-                <div className="mb-6 text-center py-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl">
-                  <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full p-6 mx-auto w-20 h-20 mb-4 flex items-center justify-center">
-                    <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    No Classes Found
-                  </h4>
-                  <p className="text-gray-400 mb-4">
-                    No classes match your search for "<span className="font-semibold text-blue-400">{searchTerm}</span>"
-                  </p>
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 
-                              text-white px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 
-                              shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    Clear Search
-                  </button>
-                </div>
-              ) : (
-                <div className="mb-6 text-center py-4 bg-slate-800/30 backdrop-blur-sm border border-slate-700/30 rounded-xl">
-                  <p className="text-gray-300">
-                    Showing results for "<span className="font-semibold text-blue-400">{searchTerm}</span>"
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="ml-3 text-sm text-blue-400 hover:text-blue-300 underline"
-                    >
-                      Clear
-                    </button>
-                  </p>
-                </div>
-              )}
-            </>
-          )}
 
           <CategorySection onCategoryClick={handleCategoryClick} selectedCategory={selectedCategory} onClearCategory={handleClearCategory} />
 
@@ -1427,14 +1397,6 @@ export default function App() {
           <CarouselSection 
             title="My Upcoming Classes"
             classes={(showAllUpcoming ? upcomingClasses : upcomingClasses.slice(0, 4))
-              .filter(cls => {
-                if (!searchTerm.trim()) return true
-                const search = searchTerm.toLowerCase()
-                return cls.title?.toLowerCase().includes(search) ||
-                       cls.description?.toLowerCase().includes(search) ||
-                       cls.categoryId?.name?.toLowerCase().includes(search) ||
-                       cls.userId?.name?.toLowerCase().includes(search)
-              })
               .map(cls => ({
               title: cls.title,
               tag: cls.categoryId?.name || 'General',
@@ -1519,7 +1481,7 @@ export default function App() {
           )}
 
           {/* Show message if no categories have classes */}
-          {!categoriesLoading && categoriesWithClasses.length === 0 && !searchTerm && (
+          {!categoriesLoading && categoriesWithClasses.length === 0 && (
             <div className="mt-8 mb-8 text-center py-12">
               <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-full p-8 mx-auto w-24 h-24 mb-6 flex items-center justify-center">
                 <svg className="w-12 h-12 text-purple-600 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1550,6 +1512,18 @@ export default function App() {
               />
             ) : route === 'references' ? (
               <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
+            ) : route === 'search' ? (
+              <SearchPage 
+                searchTerm={searchTerm}
+                onClearSearch={() => {
+                  setSearchTerm('');
+                  setRoute('home');
+                }}
+                onBack={() => setRoute('home')}
+                onJoin={handleJoinClass}
+                onSelect={(c) => { setCurrentCourse(c); setRoute('live-class'); }}
+                onStart={handleStartClass}
+              />
             ) : route === 'live-class' ? (
               <LiveClassPage classData={currentCourse} onBack={() => setRoute('home')} />
             ) : route === 'all-classes' ? (
