@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react'
+﻿import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { PageLoadingFallback } from './components/LoadingComponents'
 import ProfilePage from './components/ProfilePage'
 import ReferencePage from './components/ReferencePage'
 import ExpertsPage from './components/ExpertsPage'
