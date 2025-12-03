@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const API_URL = 'http://localhost:4000'
 
@@ -12,6 +12,50 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+
+  // Check for OAuth callback with token in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const token = urlParams.get('token')
+    const oauthProvider = urlParams.get('oauth')
+    const oauthError = urlParams.get('error')
+
+    if (oauthError) {
+      setError('Google authentication failed. Please try again.')
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+      return
+    }
+
+    if (token && oauthProvider === 'google') {
+      // Store token and fetch user data
+      localStorage.setItem('authToken', token)
+      
+      // Fetch user data
+      fetch(`${API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(res => res.json())
+        .then(userData => {
+          localStorage.setItem('user', JSON.stringify(userData))
+          setSuccessMessage('Google login successful!')
+          
+          // Call parent callback
+          if (onLogin) {
+            onLogin(userData)
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching user data:', err)
+          setError('Failed to fetch user data')
+        })
+
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [onLogin])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -53,6 +97,11 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGoogleLogin = () => {
+    // Redirect to Google OAuth
+    window.location.href = `${API_URL}/auth/google`
   }
 
   return (
@@ -302,11 +351,12 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
               </div>
             </div>
 
-            {/* Social Login */}
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
+            {/* Social Login - Google Only */}
+            <div className="w-full">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-300"
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-purple-300 transition-all duration-300 hover:shadow-md"
               >
                 <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -314,16 +364,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                <span className="text-xs md:text-sm font-semibold text-gray-700">Google</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-300"
-              >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="#1877F2" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                <span className="text-xs md:text-sm font-semibold text-gray-700">Facebook</span>
+                <span className="text-xs md:text-sm font-semibold text-gray-700">Continue with Google</span>
               </button>
             </div>
           </form>

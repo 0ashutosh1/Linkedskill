@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const Review = require('./models/Review');
 const User = require('./models/User');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://LinkedSkill:LinkedSkill008@linkedskill.cvxzqft.mongodb.net/?retryWrites=true&w=majority&appName=Linkedskill';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function updateAllExpertRatings() {
   try {

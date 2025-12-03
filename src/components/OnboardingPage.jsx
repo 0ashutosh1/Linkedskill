@@ -6,7 +6,9 @@ export default function OnboardingPage({ onComplete }) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState([])
+  const [roles, setRoles] = useState([])
   const [formData, setFormData] = useState({
+    roleId: '',
     interests: [],
     hobbies: [],
     education: '',
@@ -26,9 +28,10 @@ export default function OnboardingPage({ onComplete }) {
     'Gardening', 'Fitness', 'Coding', 'Design', 'Meditation'
   ]
 
-  // Fetch categories for interests
+  // Fetch categories and roles
   useEffect(() => {
     fetchCategories()
+    fetchRoles()
   }, [])
 
   const fetchCategories = async () => {
@@ -38,6 +41,16 @@ export default function OnboardingPage({ onComplete }) {
       setCategories(data.categories || [])
     } catch (error) {
       console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch(`${API_URL}/roles`)
+      const data = await response.json()
+      setRoles(data.roles || [])
+    } catch (error) {
+      console.error('Error fetching roles:', error)
     }
   }
 
@@ -96,15 +109,19 @@ export default function OnboardingPage({ onComplete }) {
   const validateStep = () => {
     const newErrors = {}
 
-    if (step === 1 && formData.interests.length === 0) {
+    if (step === 1 && !formData.roleId) {
+      newErrors.roleId = 'Please select your role (Student or Expert)'
+    }
+
+    if (step === 2 && formData.interests.length === 0) {
       newErrors.interests = 'Please select at least one area of interest'
     }
 
-    if (step === 2 && formData.hobbies.length === 0) {
+    if (step === 3 && formData.hobbies.length === 0) {
       newErrors.hobbies = 'Please select at least one hobby'
     }
 
-    if (step === 3) {
+    if (step === 4) {
       if (!formData.age || formData.age < 13 || formData.age > 120) {
         newErrors.age = 'Please enter a valid age (13-120)'
       }
@@ -113,7 +130,7 @@ export default function OnboardingPage({ onComplete }) {
       }
     }
 
-    if (step === 4) {
+    if (step === 5) {
       if (!formData.education.trim()) {
         newErrors.education = 'Please enter your education'
       }
@@ -126,7 +143,7 @@ export default function OnboardingPage({ onComplete }) {
 
   const handleNext = () => {
     if (validateStep()) {
-      if (step < 4) {
+      if (step < 5) {
         setStep(step + 1)
       } else {
         handleSubmit()
@@ -142,12 +159,16 @@ export default function OnboardingPage({ onComplete }) {
   }
 
   const handleSkip = () => {
-    if (step < 4) {
+    if (step === 1) {
+      // Cannot skip role selection
+      return
+    }
+    if (step < 5) {
       setStep(step + 1)
       setErrors({})
     } else {
       // Skip and complete onboarding with minimal data
-      onComplete()
+      handleSubmit()
     }
   }
 
@@ -161,6 +182,29 @@ export default function OnboardingPage({ onComplete }) {
       const token = localStorage.getItem('authToken')
       if (!token) {
         throw new Error('No authentication token found')
+      }
+
+      // First, update user's role
+      if (formData.roleId) {
+        const roleResponse = await fetch(`${API_URL}/profile/role`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ roleId: formData.roleId })
+        })
+
+        if (!roleResponse.ok) {
+          throw new Error('Failed to update role')
+        }
+
+        // Update localStorage with new role
+        const selectedRole = roles.find(r => r._id === formData.roleId)
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        user.role = selectedRole
+        user.roleId = formData.roleId
+        localStorage.setItem('user', JSON.stringify(user))
       }
 
       // Combine interests and hobbies for areasOfInterest
@@ -204,7 +248,7 @@ export default function OnboardingPage({ onComplete }) {
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
-      {[1, 2, 3, 4].map((s) => (
+      {[1, 2, 3, 4, 5].map((s) => (
         <div key={s} className="flex items-center">
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 ${
@@ -223,7 +267,7 @@ export default function OnboardingPage({ onComplete }) {
               s
             )}
           </div>
-          {s < 4 && (
+          {s < 5 && (
             <div
               className={`w-16 h-1 transition-all duration-300 ${
                 s < step ? 'bg-green-500' : 'bg-gray-200'
@@ -236,6 +280,77 @@ export default function OnboardingPage({ onComplete }) {
   )
 
   const renderStep1 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-800 mb-3">Choose Your Role</h2>
+        <p className="text-gray-600">Select whether you're joining as a Student or an Expert.</p>
+      </div>
+
+      {errors.roleId && (
+        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          {errors.roleId}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        {roles.map((role) => (
+          <button
+            key={role._id}
+            type="button"
+            onClick={() => setFormData({ ...formData, roleId: role._id })}
+            className={`p-8 rounded-2xl border-3 font-medium transition-all duration-300 group ${
+              formData.roleId === role._id
+                ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white border-purple-600 scale-105 shadow-2xl'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:shadow-xl'
+            }`}
+          >
+            <div className="flex flex-col items-center text-center space-y-4">
+              {/* Icon */}
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
+                formData.roleId === role._id
+                  ? 'bg-white/20'
+                  : 'bg-purple-100 group-hover:bg-purple-200'
+              }`}>
+                {role.name === 'student' ? (
+                  <svg className={`w-10 h-10 ${formData.roleId === role._id ? 'text-white' : 'text-purple-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                ) : (
+                  <svg className={`w-10 h-10 ${formData.roleId === role._id ? 'text-white' : 'text-purple-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                  </svg>
+                )}
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-2xl font-bold">
+                {role.displayName || role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+              </h3>
+              
+              {/* Description */}
+              <p className={`text-sm ${formData.roleId === role._id ? 'text-white/90' : 'text-gray-600'}`}>
+                {role.name === 'student' 
+                  ? 'Learn from experts, join classes, and grow your skills'
+                  : 'Share your knowledge, teach classes, and help others learn'
+                }
+              </p>
+
+              {/* Checkmark */}
+              {formData.roleId === role._id && (
+                <div className="mt-2">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-3">What are you interested in?</h2>
@@ -317,7 +432,7 @@ export default function OnboardingPage({ onComplete }) {
     </div>
   )
 
-  const renderStep2 = () => (
+  const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-3">What are your hobbies?</h2>
@@ -399,7 +514,7 @@ export default function OnboardingPage({ onComplete }) {
     </div>
   )
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-3">Personal Information</h2>
@@ -469,7 +584,7 @@ export default function OnboardingPage({ onComplete }) {
     </div>
   )
 
-  const renderStep4 = () => (
+  const renderStep5 = () => (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-3">Tell us about yourself</h2>
@@ -592,6 +707,7 @@ export default function OnboardingPage({ onComplete }) {
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
             {step === 4 && renderStep4()}
+            {step === 5 && renderStep5()}
           </div>
 
           {/* Navigation Buttons */}
@@ -646,7 +762,7 @@ export default function OnboardingPage({ onComplete }) {
             <p className="text-sm text-gray-500">
               Step {step} of 4:{' '}
               <span className="font-semibold">
-                {step === 1 ? 'Interests' : step === 2 ? 'Hobbies' : step === 3 ? 'Personal Info' : 'Professional Info'}
+                {step === 1 ? 'Role' : step === 2 ? 'Interests' : step === 3 ? 'Hobbies' : step === 4 ? 'Personal Info' : 'Professional Info'}
               </span>
             </p>
           </div>

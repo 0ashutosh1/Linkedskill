@@ -48,7 +48,7 @@ app.use(express.json());
 
 // Initialize session for passport (though we use JWT, passport needs it)
 app.use(session({
-  secret: process.env.JWT_SECRET || 'linkedskill-super-secret-jwt-key-2025',
+  secret: process.env.JWT_SECRET || 'dev-session-secret',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false } // Set to true in production with HTTPS
@@ -80,7 +80,7 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://LinkedSkill:LinkedSkill008@linkedskill.cvxzqft.mongodb.net/?retryWrites=true&w=majority&appName=Linkedskill';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const mongoose = require('mongoose');
 

@@ -303,6 +303,73 @@ export default function App() {
   // Check if user is already authenticated on mount
   useEffect(() => {
     try {
+      // First, check for OAuth callback in URL
+      const urlParams = new URLSearchParams(window.location.search)
+      const token = urlParams.get('token')
+      const oauthProvider = urlParams.get('oauth')
+      const oauthError = urlParams.get('error')
+      const needsOnboarding = urlParams.get('needsOnboarding') === 'true'
+
+      if (token && oauthProvider === 'google') {
+        // OAuth callback detected - handle it here
+        localStorage.setItem('authToken', token)
+        
+        // Fetch user data
+        fetch('http://localhost:4000/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+          .then(res => res.json())
+          .then(userData => {
+            console.log('📥 OAuth user data received:', userData)
+            localStorage.setItem('user', JSON.stringify(userData))
+            
+            // Use the needsOnboarding flag from backend (most reliable)
+            // Backend checks if user has a role in database
+            if (needsOnboarding) {
+              // User needs onboarding - no role in database
+              console.log('🆕 User needs onboarding - no role in database')
+              localStorage.setItem('onboardingComplete', 'false')
+              setIsAuthenticated(true)
+              setShowOnboarding(true)
+              setAppLoading(false)
+            } else {
+              // User has completed profile - go to home
+              console.log('✅ User has complete profile - going to home')
+              localStorage.setItem('onboardingComplete', 'true')
+              if (userData.role) {
+                setUserRole(userData.role.name)
+                setSidebarKey(prev => prev + 1)
+              }
+              setIsAuthenticated(true)
+              setRoute('home')
+              fetchConnectedExperts()
+              fetchUpcomingClasses()
+              fetchClassesByCategories()
+              fetchUserProfile()
+              setAppLoading(false)
+            }
+            
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname)
+          })
+          .catch(err => {
+            console.error('OAuth error:', err)
+            setAppLoading(false)
+          })
+        
+        return // Exit early, don't do regular auth check
+      }
+
+      if (oauthError) {
+        // OAuth failed - show login page
+        window.history.replaceState({}, document.title, window.location.pathname)
+        setAppLoading(false)
+        return
+      }
+
+      // Regular authentication check
       const authenticated = checkAuth()
       setIsAuthenticated(authenticated)
       
@@ -314,22 +381,28 @@ export default function App() {
           setUserRole(user.role.name)
         }
         
-        // Check if onboarding was completed
+        // Check if user needs onboarding
         const onboardingComplete = localStorage.getItem('onboardingComplete')
         
-        // Only show onboarding if explicitly marked as incomplete (for new signups)
-        // If the flag doesn't exist, assume existing user who's already onboarded
-        if (onboardingComplete === 'false') {
-          // User is authenticated but hasn't completed onboarding (new signup)
+        // Show onboarding ONLY if explicitly marked as incomplete AND user has no role
+        // If user has a role, they've completed onboarding, so go to home
+        if (onboardingComplete === 'false' && !user.role && !user.roleId) {
+          // User is authenticated but hasn't completed onboarding (new signup without role)
+          console.log('⚠️ User authenticated but no role - showing onboarding')
           setShowOnboarding(true)
         } else {
-          // User has completed onboarding OR is an existing user, go to home
+          // User has completed onboarding OR has a role, go to home
+          console.log('✅ User authenticated with role - going to home')
           setRoute('home')
           fetchConnectedExperts()
           fetchUpcomingClasses()
           fetchClassesByCategories()
           fetchUserProfile()
         }
+      } else {
+        // Not authenticated - show landing page
+        console.log('📋 User not authenticated - showing landing page')
+        setRoute('landing')
       }
       
       // App is ready to render

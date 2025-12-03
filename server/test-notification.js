@@ -6,7 +6,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://LinkedSkill:LinkedSkill008@linkedskill.cvxzqft.mongodb.net/?retryWrites=true&w=majority&appName=Linkedskill';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function testNotification() {
   const classId = process.argv[2];

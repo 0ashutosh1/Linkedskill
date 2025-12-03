@@ -3,7 +3,7 @@ const Connection = require('./models/Connection')
 const User = require('./models/User')
 const Role = require('./models/Role')
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://LinkedSkill:LinkedSkill008@linkedskill.cvxzqft.mongodb.net/?retryWrites=true&w=majority&appName=Linkedskill'
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/coursue-dev'
 
 const seedConnections = async () => {
   try {
