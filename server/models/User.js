@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, default: '' },
   phoneNo: { type: Number, required: false },
   roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role', required: false },
-  passwordHash: { type: String, required: true },
+  passwordHash: { type: String, required: false }, // Optional for OAuth users
+  googleId: { type: String, unique: true, sparse: true }, // Google OAuth ID
   // Expert rating fields
   averageRating: { type: Number, default: 0, min: 0, max: 5 },
   totalReviews: { type: Number, default: 0 },

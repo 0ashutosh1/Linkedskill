@@ -4,6 +4,8 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
+const passport = require('./config/passport'); // Import passport configuration
+const session = require('express-session');
 const { initializeAgenda, stopAgenda } = require('./lib/scheduler');
 const { defineClassJobs } = require('./jobs/classJobs');
 const { defineRoadmapJobs, scheduleRoadmapJobs } = require('./jobs/roadmapJobs');
@@ -22,6 +24,7 @@ const jobsRoutes = require('./routes/jobs');
 const reviewRoutes = require('./routes/review');
 const roadmapRoutes = require('./routes/roadmap');
 const counsellingRoutes = require('./routes/counselling');
+const otpRoutes = require('./routes/otp');
 const fs = require('fs');
 const path = require('path');
 
@@ -36,14 +39,27 @@ const io = socketIo(server, {
 });
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: ["http://localhost:3000", "http://localhost:5173"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 
+// Initialize session for passport (though we use JWT, passport needs it)
+app.use(session({
+  secret: process.env.JWT_SECRET || 'linkedskill-super-secret-jwt-key-2025',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true in production with HTTPS
+}));
+
+// Initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use('/auth', authRoutes);
+app.use('/otp', otpRoutes);
 app.use('/classes', classRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/profile', profileRoutes);

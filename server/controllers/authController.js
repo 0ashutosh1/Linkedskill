@@ -52,7 +52,12 @@ exports.signup = async (req, res) => {
   const { email, password, name, phoneNo, roleId } = req.body;
   console.log('Signup request:', { email, name, phoneNo, roleId });
   
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  
+  // Password is only required for non-OAuth signups
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
 
   try {
     const existing = await User.findOne({ email });
@@ -96,6 +101,12 @@ exports.login = async (req, res) => {
     if (!user) {
       console.log('User not found:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if user has a password (OAuth users might not have passwordHash)
+    if (!user.passwordHash) {
+      console.log('User signed up with OAuth, no password set:', email);
+      return res.status(401).json({ error: 'Please login with Google' });
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
