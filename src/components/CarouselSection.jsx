@@ -122,6 +122,11 @@ export default function CarouselSection({  title, classes, onSeeAll, onJoin, onS
   }
 
   if (!classes || classes.length === 0) {
+    // Hide empty state for students
+    if (userRole === 'Student') {
+      return null
+    }
+
     return (
       <section className="mb-4 sm:mb-6 md:mb-8 lg:mb-10">
         <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-5 lg:mb-6 px-3 sm:px-4 md:px-0">
