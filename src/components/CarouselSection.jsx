@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+﻿import React, { useState, useEffect, useRef } from 'react'
 import CourseCard from './CourseCard'
 
-export default function CarouselSection({ title, classes, onSeeAll, onJoin, onSelect, onStart, seeAllText = "Show All", loading = false }) {
+export default function CarouselSection({  title, classes, onSeeAll, onJoin, onSelect, onStart, seeAllText = "Show All", loading = false , userRole }) {
   const [hoveredIndex, setHoveredIndex] = useState(null)
   const [currentOffset, setCurrentOffset] = useState(0)
   const [visibleCards, setVisibleCards] = useState(4)

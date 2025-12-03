@@ -1432,7 +1432,7 @@ export default function App() {
                     </h3>
                   </div>
                   <CarouselSection 
-                    title=""
+                    userRole={userRole} title=""
                     classes={categoryClasses}
                     onSeeAll={() => console.log('See all')}
                     onJoin={handleJoinClass}
@@ -1468,7 +1468,7 @@ export default function App() {
 
           {/* Upcoming Classes - Dynamic Data */}
           <CarouselSection 
-            title="My Upcoming Classes"
+            userRole={userRole} title="My Upcoming Classes"
             classes={(showAllUpcoming ? upcomingClasses : upcomingClasses.slice(0, 4))
               .map(cls => ({
               title: cls.title,
@@ -1504,7 +1504,7 @@ export default function App() {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="mt-8 mb-8">
                   <CarouselSection 
-                    title="Loading Classes..."
+                    userRole={userRole} title="Loading Classes..."
                     classes={[]}
                     loading={true}
                     onSeeAll={() => {}}
@@ -1539,7 +1539,7 @@ export default function App() {
               return (
                 <div key={category.name} className="mt-8 mb-8">
                   <CarouselSection 
-                    title={`${category.name} Classes`}
+                    userRole={userRole} title={`${category.name} Classes`}
                     classes={displayClasses}
                     loading={false}
                     onSeeAll={hasMoreClasses ? () => handleSeeAllCategory(category.name, category.classes) : undefined}
