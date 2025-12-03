@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 
 export default function LandingPage({ onGetStarted, onLogin }) {
@@ -122,7 +122,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-full mb-6 sm:mb-8 backdrop-blur-sm"
             >
               <span className="w-2 h-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full mr-2 animate-pulse"></span>
-              <span className="text-sm sm:text-base text-violet-300 font-medium">ðŸš€ Join 1,000+ Active Learners</span>
+              <span className="text-sm sm:text-base text-violet-300 font-medium">🚀 Join 1,000+ Active Learners</span>
             </motion.div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 sm:mb-8 leading-tight px-4">
@@ -174,10 +174,10 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               animate="animate"
             >
               {[
-                { icon: 'ðŸŽ“', title: '1000+', desc: 'Active Students', color: 'from-blue-500 to-cyan-500' },
-                { icon: 'ðŸ‘¨â€ðŸ«', title: '50+', desc: 'Expert Instructors', color: 'from-violet-500 to-purple-500' },
-                { icon: 'ðŸ“š', title: '100+', desc: 'Live Classes', color: 'from-fuchsia-500 to-pink-500' },
-                { icon: 'â­', title: '4.9/5', desc: 'Average Rating', color: 'from-amber-500 to-orange-500' }
+                { icon: '🎓', title: '1000+', desc: 'Active Students', color: 'from-blue-500 to-cyan-500' },
+                { icon: '👨‍🏫', title: '50+', desc: 'Expert Instructors', color: 'from-violet-500 to-purple-500' },
+                { icon: '📚', title: '100+', desc: 'Live Classes', color: 'from-fuchsia-500 to-pink-500' },
+                { icon: '⭐', title: '4.9/5', desc: 'Average Rating', color: 'from-amber-500 to-orange-500' }
               ].map((stat, idx) => (
                 <motion.div
                   key={idx}
@@ -242,7 +242,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             className="text-center mb-16 sm:mb-20"
           >
             <span className="inline-block px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-full text-sm font-semibold text-violet-300 mb-4">
-              âœ¨ FEATURES
+              ✨ FEATURES
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               Everything You Need to
@@ -258,37 +258,37 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
-                icon: 'ðŸŽ¥',
+                icon: '🎥',
                 title: 'Live Video Classes',
                 desc: 'Crystal-clear HD video sessions with interactive features for an immersive learning experience',
                 gradient: 'from-blue-500 to-cyan-500'
               },
               {
-                icon: 'ðŸ’¬',
+                icon: '💬',
                 title: 'Real-Time Chat',
                 desc: 'Instant messaging for seamless communication with experts before, during, and after classes',
                 gradient: 'from-violet-500 to-purple-500'
               },
               {
-                icon: 'ðŸ””',
+                icon: '🔔',
                 title: 'Push Notifications',
                 desc: 'Never miss a class with intelligent real-time alerts for upcoming sessions and important updates',
                 gradient: 'from-amber-500 to-orange-500'
               },
               {
-                icon: 'ðŸ‘¥',
+                icon: '👥',
                 title: 'Expert Network',
                 desc: 'Connect with 50+ verified industry professionals and build lasting mentorship relationships',
                 gradient: 'from-emerald-500 to-green-500'
               },
               {
-                icon: 'ðŸ¤–',
+                icon: '🤖',
                 title: 'AI Career Counselling',
                 desc: 'AI-powered personalized career guidance. Answer questions about your goals and receive tailored advice',
                 gradient: 'from-rose-500 to-red-500'
               },
               {
-                icon: 'ðŸ—ºï¸',
+                icon: '🗺️',
                 title: 'AI Learning Roadmaps',
                 desc: 'AI-generated weekly learning paths with tasks, points system, streak tracking, and progress monitoring',
                 gradient: 'from-amber-500 to-orange-500'
@@ -339,7 +339,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             className="text-center mb-16 sm:mb-20"
           >
             <span className="inline-block px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-full text-sm font-semibold text-violet-300 mb-4">
-              ðŸŽ¯ HOW IT WORKS
+              🎯 HOW IT WORKS
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               Start Your Journey in
@@ -372,7 +372,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 step: '01',
                 title: 'Sign Up & Onboard',
                 desc: 'Quick signup with role selection (Student/Expert). Complete onboarding with interests and goals. Upload profile photo and start your learning journey.',
-                icon: 'ðŸ‘¤',
+                icon: '👤',
                 color: 'from-violet-500 to-purple-500',
                 features: ['Quick signup', 'Profile customization', 'Interest tags']
               },
@@ -380,7 +380,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 step: '02',
                 title: 'Connect & Schedule',
                 desc: 'Browse experts by category and send connection requests. Once accepted, use real-time chat to communicate and schedule video classes.',
-                icon: 'ðŸ¤',
+                icon: '🤝',
                 color: 'from-purple-500 to-fuchsia-500',
                 features: ['Browse by category', 'Connection system', 'Real-time chat']
               },
@@ -388,7 +388,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 step: '03',
                 title: 'Learn & Review',
                 desc: 'Attend HD video classes with interactive features. After completion, rate and review your experience to help the community.',
-                icon: 'ðŸš€',
+                icon: '🚀',
                 color: 'from-fuchsia-500 to-pink-500',
                 features: ['Live HD classes', 'Review system', 'Rating experts']
               }
@@ -442,7 +442,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                     <div className="flex flex-wrap justify-center gap-2">
                       {step.features.map((feature, fIdx) => (
                         <span key={fIdx} className={`px-3 py-1.5 text-sm bg-gradient-to-r ${step.color} bg-opacity-10 border border-white/10 rounded-full text-white/80`}>
-                          âœ“ {feature}
+                          ✓ {feature}
                         </span>
                       ))}
                     </div>
@@ -461,7 +461,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                     transition={{ duration: 0.6, delay: idx * 0.2 + 0.5 }}
                     className="hidden lg:block absolute top-32 -right-6 text-4xl text-purple-500/50 z-20"
                   >
-                    â†’
+                    →
                   </motion.div>
                 )}
               </motion.div>
@@ -499,7 +499,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             className="text-center mb-16 sm:mb-20"
           >
             <span className="inline-block px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-full text-sm font-semibold text-violet-300 mb-4">
-              ðŸ’¬ TESTIMONIALS
+              💬 TESTIMONIALS
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               Loved by Students &
@@ -517,7 +517,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 name: 'Sarah Chen',
                 role: 'Full-Stack Developer',
-                avatar: 'ðŸ‘©â€ðŸ’»',
+                avatar: '👩‍💻',
                 rating: 5,
                 text: 'LinkedSkill transformed my career! I learned React from industry experts and landed my dream job within 3 months. The live sessions are incredibly engaging.',
                 gradient: 'from-blue-500 to-cyan-500'
@@ -525,7 +525,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 name: 'Marcus Rodriguez',
                 role: 'UX Design Mentor',
-                avatar: 'ðŸ‘¨â€ðŸŽ¨',
+                avatar: '👨‍🎨',
                 rating: 5,
                 text: 'As an expert, this platform lets me share my 10+ years of experience with eager learners. The scheduling system is flawless, and the community is amazing!',
                 gradient: 'from-violet-500 to-purple-500'
@@ -533,7 +533,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 name: 'Priya Patel',
                 role: 'Data Science Student',
-                avatar: 'ðŸ‘©â€ðŸ”¬',
+                avatar: '👩‍🔬',
                 rating: 5,
                 text: 'The quality of instructors here is unmatched. I\'ve taken 15+ classes on machine learning and AI. The real-time chat makes it feel like an in-person class.',
                 gradient: 'from-fuchsia-500 to-pink-500'
@@ -541,7 +541,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 name: 'David Kim',
                 role: 'Marketing Expert',
-                avatar: 'ðŸ‘¨â€ðŸ’¼',
+                avatar: '👨‍💼',
                 rating: 5,
                 text: 'I\'ve taught over 100 students here! The platform makes it easy to manage my schedule, and the students are genuinely invested in learning. Highly recommend!',
                 gradient: 'from-emerald-500 to-green-500'
@@ -549,7 +549,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 name: 'Emma Wilson',
                 role: 'Photography Enthusiast',
-                avatar: 'ðŸ‘©â€ðŸ“·',
+                avatar: '👩‍📷',
                 rating: 5,
                 text: 'From beginner to advanced photography in just 6 months! The diverse range of classes and personalized feedback from experts made all the difference.',
                 gradient: 'from-amber-500 to-orange-500'
@@ -557,7 +557,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               {
                 name: 'Alex Thompson',
                 role: 'Blockchain Developer',
-                avatar: 'ðŸ‘¨â€ðŸ’»',
+                avatar: '👨‍💻',
                 rating: 5,
                 text: 'The future of education is here! I love how I can learn cutting-edge Web3 technologies from pioneers in the field. The community support is incredible.',
                 gradient: 'from-indigo-500 to-blue-500'
@@ -576,7 +576,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 <div className="relative z-10">
                   <div className="flex gap-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <span key={i} className="text-yellow-400 text-xl">â­</span>
+                      <span key={i} className="text-yellow-400 text-xl">⭐</span>
                     ))}
                   </div>
 
@@ -611,7 +611,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             className="text-center mb-16 sm:mb-20"
           >
             <span className="inline-block px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-full text-sm font-semibold text-violet-300 mb-4">
-              ðŸ‘¥ FOR EVERYONE
+              👥 FOR EVERYONE
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               Built For Both
@@ -637,7 +637,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               
               <div className="relative z-10">
                 <div className="text-6xl sm:text-7xl mb-6 inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-3xl">
-                  ðŸŽ“
+                  🎓
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   For Students
@@ -659,7 +659,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                       transition={{ duration: 0.4, delay: i * 0.1 }}
                       className="flex items-start gap-3"
                     >
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-sm font-bold">âœ“</span>
+                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-sm font-bold">✓</span>
                       <span className="leading-relaxed">{item}</span>
                     </motion.li>
                   ))}
@@ -687,7 +687,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               
               <div className="relative z-10">
                 <div className="text-6xl sm:text-7xl mb-6 inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-3xl">
-                  ðŸ‘¨â€ðŸ«
+                  👨‍🏫
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
                   For Experts
@@ -709,7 +709,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                       transition={{ duration: 0.4, delay: i * 0.1 }}
                       className="flex items-start gap-3"
                     >
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white text-sm font-bold">âœ“</span>
+                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white text-sm font-bold">✓</span>
                       <span className="leading-relaxed">{item}</span>
                     </motion.li>
                   ))}
@@ -750,7 +750,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 transition={{ duration: 0.5 }}
               >
                 <span className="inline-block px-4 py-2 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 rounded-full text-sm font-semibold text-violet-300 mb-6">
-                  ðŸŽ‰ Limited Time Offer
+                  🎉 Limited Time Offer
                 </span>
               </motion.div>
 
@@ -820,13 +820,6 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           </motion.div>
         </div>
       </section>
+    )
 
-      {/* Footer */}
-      <footer className="relative py-16 px-4 sm:px-6 lg:px-8 border-t border-white/10 z-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-12 mb-12">
-            {/* Brand */}
-          </div>
-          
-  )
 }
