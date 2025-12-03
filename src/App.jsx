@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ProfilePage from './components/ProfilePage'
 import ReferencePage from './components/ReferencePage'
 import ExpertsPage from './components/ExpertsPage'
@@ -208,7 +208,7 @@ export default function App() {
         
         if (personalizedData.personalized && personalizedData.classes.length > 0) {
           // User has interests and we found matching classes
-          console.log(`📌 Showing ${personalizedData.classes.length} personalized classes based on interests:`, personalizedData.interests)
+          console.log(`ðŸ“Œ Showing ${personalizedData.classes.length} personalized classes based on interests:`, personalizedData.interests)
           
           // Group personalized classes by category
           const classesGroupedByCategory = personalizedData.classes.reduce((acc, cls) => {
@@ -246,10 +246,10 @@ export default function App() {
             setCategoriesLoading(false)
             return
           } else {
-            console.log('📌 User has interests but no matching classes found, showing recommended classes instead')
+            console.log('ðŸ“Œ User has interests but no matching classes found, showing recommended classes instead')
           }
         } else if (personalizedData.personalized && personalizedData.classes.length === 0) {
-          console.log('📌 User has interests but no matching classes found, showing recommended classes instead')
+          console.log('ðŸ“Œ User has interests but no matching classes found, showing recommended classes instead')
         }
       } catch (personalizedError) {
         console.warn('Could not fetch personalized classes, falling back to all categories:', personalizedError)
@@ -322,21 +322,21 @@ export default function App() {
         })
           .then(res => res.json())
           .then(userData => {
-            console.log('📥 OAuth user data received:', userData)
+            console.log('ðŸ“¥ OAuth user data received:', userData)
             localStorage.setItem('user', JSON.stringify(userData))
             
             // Use the needsOnboarding flag from backend (most reliable)
             // Backend checks if user has a role in database
             if (needsOnboarding) {
               // User needs onboarding - no role in database
-              console.log('🆕 User needs onboarding - no role in database')
+              console.log('ðŸ†• User needs onboarding - no role in database')
               localStorage.setItem('onboardingComplete', 'false')
               setIsAuthenticated(true)
               setShowOnboarding(true)
               setAppLoading(false)
             } else {
               // User has completed profile - go to home
-              console.log('✅ User has complete profile - going to home')
+              console.log('âœ… User has complete profile - going to home')
               localStorage.setItem('onboardingComplete', 'true')
               if (userData.role) {
                 setUserRole(userData.role.name)
@@ -388,11 +388,11 @@ export default function App() {
         // If user has a role, they've completed onboarding, so go to home
         if (onboardingComplete === 'false' && !user.role && !user.roleId) {
           // User is authenticated but hasn't completed onboarding (new signup without role)
-          console.log('⚠️ User authenticated but no role - showing onboarding')
+          console.log('âš ï¸ User authenticated but no role - showing onboarding')
           setShowOnboarding(true)
         } else {
           // User has completed onboarding OR has a role, go to home
-          console.log('✅ User authenticated with role - going to home')
+          console.log('âœ… User authenticated with role - going to home')
           setRoute('home')
           fetchConnectedExperts()
           fetchUpcomingClasses()
@@ -401,7 +401,7 @@ export default function App() {
         }
       } else {
         // Not authenticated - show landing page
-        console.log('📋 User not authenticated - showing landing page')
+        console.log('ðŸ“‹ User not authenticated - showing landing page')
         setRoute('landing')
       }
       
@@ -1573,7 +1573,8 @@ export default function App() {
 
               </>
             ) : route === 'profile' ? (
-              <ProfilePage 
+              <Suspense fallback={<PageLoadingFallback />}>
+                <ProfilePage 
                 profile={selectedProfile} 
                 onBack={() => { setRoute('home'); setSelectedProfile(null); }}
                 onJoinLiveClass={(classData) => {
@@ -1583,10 +1584,14 @@ export default function App() {
                 onPhotoUpdate={fetchUserProfile}
                 onViewClassReviews={handleViewExpertReviews}
               />
+              </Suspense>
             ) : route === 'references' ? (
-              <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
+              <Suspense fallback={<PageLoadingFallback />}>
+                <ReferencePage course={currentCourse} onBack={() => setRoute('home')} />
+              </Suspense>
             ) : route === 'search' ? (
-              <SearchPage 
+              <Suspense fallback={<PageLoadingFallback />}>
+                <SearchPage 
                 searchTerm={searchTerm}
                 onClearSearch={() => {
                   setSearchTerm('');
@@ -1597,10 +1602,14 @@ export default function App() {
                 onSelect={(c) => { setCurrentCourse(c); setRoute('live-class'); }}
                 onStart={handleStartClass}
               />
+              </Suspense>
             ) : route === 'live-class' ? (
-              <LiveClassPage classData={currentCourse} onBack={() => setRoute('home')} />
+              <Suspense fallback={<PageLoadingFallback />}>
+                <LiveClassPage classData={currentCourse} onBack={() => setRoute('home')} />
+              </Suspense>
             ) : route === 'all-classes' ? (
-              <AllClassesPage 
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AllClassesPage 
                 categoryName={allClassesCategory}
                 allClasses={allClassesData}
                 onBack={handleBackFromAllClasses}
@@ -1608,14 +1617,22 @@ export default function App() {
                 onSelect={(c) => { setCurrentCourse(c); setRoute('live-class'); }}
                 onStart={handleStartClass}
               />
+              </Suspense>
             ) : route === 'experts' ? (
-              <ExpertsPage onBack={() => setRoute('home')} />
+              <Suspense fallback={<PageLoadingFallback />}>
+                <ExpertsPage onBack={() => setRoute('home')} />
+              </Suspense>
             ) : route === 'mentoring' ? (
-              <MentoringPage onBack={() => setRoute('home')} />
+              <Suspense fallback={<PageLoadingFallback />}>
+                <MentoringPage onBack={() => setRoute('home')} />
+              </Suspense>
             ) : route === 'counselling' || route === 'counsellings' ? (
-              <CounsellingPage onBack={() => setRoute('home')} />
+              <Suspense fallback={<PageLoadingFallback />}>
+                <CounsellingPage onBack={() => setRoute('home')} />
+              </Suspense>
             ) : route === 'expert-reviews' && selectedExpertForReviews ? (
-              <ExpertReviewsPage 
+              <Suspense fallback={<PageLoadingFallback />}>
+                <ExpertReviewsPage 
                 expertId={selectedExpertForReviews.id}
                 expertName={selectedExpertForReviews.name}
                 classId={selectedExpertForReviews.classId}
@@ -1625,8 +1642,11 @@ export default function App() {
                   setRoute('home');
                 }}
               />
+              </Suspense>
             ) : route === 'notifications' ? (
-              <NotificationsPage onBack={() => setRoute('home')} />
+              <Suspense fallback={<PageLoadingFallback />}>
+                <NotificationsPage onBack={() => setRoute('home')} />
+              </Suspense>
             ) : null }
           </main>
 
@@ -1684,8 +1704,8 @@ export default function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">⏰ Daily Reminder!</h3>
-              <p className="text-orange-400 font-semibold">Keep your streak alive! 🔥</p>
+              <h3 className="text-2xl font-bold text-white mb-2">â° Daily Reminder!</h3>
+              <p className="text-orange-400 font-semibold">Keep your streak alive! ðŸ”¥</p>
             </div>
 
             <div className="bg-slate-700/50 rounded-xl p-4 mb-6 border border-slate-600">
@@ -1696,8 +1716,8 @@ export default function App() {
                 <h4 className="font-bold text-white mb-2">{roadmapReminder.task.title}</h4>
                 <p className="text-sm text-gray-400 mb-2">{roadmapReminder.task.description}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span>📅 Week {roadmapReminder.week.weekNumber}</span>
-                  <span>⏱️ {roadmapReminder.task.estimatedHours}h</span>
+                  <span>ðŸ“… Week {roadmapReminder.week.weekNumber}</span>
+                  <span>â±ï¸ {roadmapReminder.task.estimatedHours}h</span>
                 </div>
               </div>
             </div>
@@ -1712,7 +1732,7 @@ export default function App() {
                          text-white px-6 py-4 rounded-xl font-bold transition-all duration-200 
                          shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                📝 Go to My Roadmap
+                ðŸ“ Go to My Roadmap
               </button>
               <button
                 onClick={() => setShowRoadmapReminder(false)}
@@ -1724,7 +1744,7 @@ export default function App() {
             </div>
 
             <p className="text-center text-xs text-gray-500 mt-4">
-              Current Streak: <span className="text-orange-400 font-bold">{roadmapReminder.roadmap.streak} day{roadmapReminder.roadmap.streak !== 1 ? 's' : ''}</span> 🔥
+              Current Streak: <span className="text-orange-400 font-bold">{roadmapReminder.roadmap.streak} day{roadmapReminder.roadmap.streak !== 1 ? 's' : ''}</span> ðŸ”¥
             </p>
           </div>
         </div>

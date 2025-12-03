@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { followExpert, unfollowExpert, getConnectionStatus } from '../utils/connections'
 import { getCurrentUser } from '../utils/auth'
 
@@ -109,13 +109,13 @@ export default function ExpertsPage({ onBack }) {
     
     if (status.isConnected) {
       return {
-        text: '✓ Connected',
+        text: 'âœ“ Connected',
         isConnected: true,
         canDisconnect: true
       }
     } else if (status.status === 'pending') {
       return {
-        text: '⏳ Request Sent',
+        text: 'â³ Request Sent',
         isConnected: false,
         canDisconnect: false
       }
@@ -380,7 +380,7 @@ export default function ExpertsPage({ onBack }) {
                                active:scale-95 ${
                       buttonInfo.isConnected
                         ? 'bg-green-500/30 text-green-100 hover:bg-green-500/40'
-                        : buttonInfo.text === '⏳ Request Sent'
+                        : buttonInfo.text === 'â³ Request Sent'
                         ? 'bg-orange-500/30 text-orange-100 cursor-not-allowed'
                         : buttonInfo.text === 'Reconnect'
                         ? 'bg-blue-500/30 text-blue-100 hover:bg-blue-500/40'
@@ -405,7 +405,7 @@ export default function ExpertsPage({ onBack }) {
                   </p>
                   {expert.areasOfInterest && expert.areasOfInterest.length > 0 && (
                     <p className="text-pink-100 text-xs opacity-90 leading-tight truncate">
-                      {expert.areasOfInterest.slice(0, 2).join(' • ')}
+                      {expert.areasOfInterest.slice(0, 2).join(' â€¢ ')}
                     </p>
                   )}
                 </div>
@@ -442,7 +442,7 @@ export default function ExpertsPage({ onBack }) {
                          shadow-sm hover:shadow-md"
               aria-label="Close modal"
             >
-              ×
+              Ã—
             </button>
 
             {/* Modal content layout */}
@@ -467,7 +467,7 @@ export default function ExpertsPage({ onBack }) {
                                   p-2 sm:p-3 rounded-full shadow-lg 
                                   ring-2 ring-white flex flex-col items-center justify-center">
                     <span className="text-xs sm:text-sm font-bold leading-tight">
-                      ★ {selectedMember.userId?.averageRating?.toFixed(1) || selectedMember.averageRating?.toFixed(1) || '0.0'}
+                      â˜… {selectedMember.userId?.averageRating?.toFixed(1) || selectedMember.averageRating?.toFixed(1) || '0.0'}
                     </span>
                     {(selectedMember.userId?.totalReviews > 0 || selectedMember.totalReviews > 0) && (
                       <span className="text-[0.5rem] sm:text-xs opacity-90 leading-tight">
@@ -577,7 +577,7 @@ export default function ExpertsPage({ onBack }) {
                                shadow-lg hover:shadow-xl
                                ${getConnectionButtonInfo(selectedMember.userId._id).isConnected
                                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                                 : getConnectionButtonInfo(selectedMember.userId._id).text === '⏳ Request Sent'
+                                 : getConnectionButtonInfo(selectedMember.userId._id).text === 'â³ Request Sent'
                                  ? 'bg-orange-500 text-white cursor-not-allowed'
                                  : getConnectionButtonInfo(selectedMember.userId._id).text === 'Reconnect'
                                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'

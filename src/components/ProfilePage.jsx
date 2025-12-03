@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { CompactCountdownTimer } from './CountdownTimer'
 import ClassReviewsSummary from './ClassReviewsSummary'
 import { classAPI } from '../utils/classAPI'
@@ -529,9 +529,9 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
       setStartingClass(classItem._id)
       
       // Create VideoSDK meeting room
-      console.log('🎥 Creating meeting room...')
+      console.log('ðŸŽ¥ Creating meeting room...')
       const meetingId = await createMeeting()
-      console.log('✅ Meeting created:', meetingId)
+      console.log('âœ… Meeting created:', meetingId)
       
       // Update class with meeting ID and start it
       const token = localStorage.getItem('authToken')
@@ -546,7 +546,7 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
       
       const result = await classAPI.startClass(classItem._id)
       
-      setMessage({ type: 'success', text: `Class "${classItem.title}" has been started successfully! 🎉` })
+      setMessage({ type: 'success', text: `Class "${classItem.title}" has been started successfully! ðŸŽ‰` })
       
       // Update the class in the local state to reflect the new status and meeting ID
       setMyClasses(prevClasses => 
@@ -680,7 +680,7 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
               <div className="flex items-center mb-6">
                 <div className="relative w-20 h-20 bg-slate-700/50 border border-slate-600/50 rounded-full flex items-center justify-center group">
                   {profile?.photoUrl ? (
-                    <img src={profile.photoUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                    <img loading="lazy" decoding="async" src={profile.photoUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -1026,7 +1026,7 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                   <h2 className="text-2xl font-bold">Classes Management</h2>
                   <p className="text-gray-300 text-sm mt-1">
                     {dateFilter ? `Classes from ${new Date(dateFilter).toLocaleDateString()}` : 
-                     showAllClasses ? 'All courses' : 'Latest 4 courses'} • Sorted by date
+                     showAllClasses ? 'All courses' : 'Latest 4 courses'} â€¢ Sorted by date
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1236,11 +1236,11 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                                 if (classOwnerId && currentUserId) {
                                   return classOwnerId === currentUserId ? (
                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                      👨‍🏫 Created by me
+                                      ðŸ‘¨â€ðŸ« Created by me
                                     </span>
                                   ) : (
                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-                                      ✅ Registered
+                                      âœ… Registered
                                     </span>
                                   );
                                 }
@@ -1254,9 +1254,9 @@ export default function ProfilePage({ onBack, profile: passedProfile, onJoinLive
                                     classItem.status === 'completed' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
                                     classItem.status === 'cancelled' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
                                     'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'}`}>
-                                  {classItem.status === 'live' ? '🔴 LIVE' : 
+                                  {classItem.status === 'live' ? 'ðŸ”´ LIVE' : 
                                    classItem.status === 'completed' ? 'Completed' : 
-                                   classItem.status === 'cancelled' ? '❌ Cancelled' :
+                                   classItem.status === 'cancelled' ? 'âŒ Cancelled' :
                                    'Scheduled'}
                                 </span>
                               )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { CompactCountdownTimer } from './CountdownTimer'
 import { getCurrentUser } from '../utils/auth'
 
@@ -19,7 +19,7 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
   const isOwner = currentUserId && classOwnerId && currentUserId.toString() === classOwnerId.toString()
   
   // Debug logging
-  console.log('🔍 CourseCard Debug:', {
+  console.log('ðŸ” CourseCard Debug:', {
     title,
     currentUserId,
     classOwnerId,
@@ -74,37 +74,37 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
       return {
         gradient: 'from-orange-500 via-red-500 to-pink-500',
         pattern: 'frontend',
-        icon: '⚛️'
+        icon: 'âš›ï¸'
       }
     } else if (titleLower.includes('backend') || titleLower.includes('server') || titleLower.includes('node') || titleLower.includes('api')) {
       return {
         gradient: 'from-green-500 via-teal-500 to-cyan-500',
         pattern: 'backend',
-        icon: '🚀'
+        icon: 'ðŸš€'
       }
     } else if (titleLower.includes('design') || titleLower.includes('ui') || titleLower.includes('ux')) {
       return {
         gradient: 'from-purple-500 via-indigo-500 to-blue-500',
         pattern: 'design',
-        icon: '🎨'
+        icon: 'ðŸŽ¨'
       }
     } else if (titleLower.includes('data') || titleLower.includes('science') || titleLower.includes('analytics')) {
       return {
         gradient: 'from-blue-500 via-cyan-500 to-teal-500',
         pattern: 'data',
-        icon: '📊'
+        icon: 'ðŸ“Š'
       }
     } else if (titleLower.includes('finance') || titleLower.includes('investment') || titleLower.includes('business')) {
       return {
         gradient: 'from-emerald-500 via-green-500 to-teal-500',
         pattern: 'finance',
-        icon: '💰'
+        icon: 'ðŸ’°'
       }
     } else {
       return {
         gradient: 'from-slate-500 via-gray-500 to-zinc-500',
         pattern: 'general',
-        icon: '📚'
+        icon: 'ðŸ“š'
       }
     }
   }
@@ -217,7 +217,7 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
             <>
               <img 
                 src={image} 
-                alt={title}
+                alt={title} loading="lazy" decoding="async"
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
@@ -237,14 +237,14 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
           {/* Status Badge - if live */}
           {status === 'live' && (
             <div className="absolute top-3 left-3 bg-red-500 rounded-full px-2 py-1">
-              <span className="text-white text-xs font-bold">● LIVE</span>
+              <span className="text-white text-xs font-bold">â— LIVE</span>
             </div>
           )}
           
           {/* Cancelled Badge */}
           {status === 'cancelled' && (
             <div className="absolute top-3 left-3 bg-orange-500 rounded-full px-2 py-1">
-              <span className="text-white text-xs font-bold">❌ CANCELLED</span>
+              <span className="text-white text-xs font-bold">âŒ CANCELLED</span>
             </div>
           )}
         </div>
@@ -261,7 +261,7 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
             <p>By: {author || 'Expert Instructor'}</p>
             {classTime && (
               <p className="text-gray-500">
-                🕒 {classTime} • {date}
+                ðŸ•’ {classTime} â€¢ {date}
               </p>
             )}
           </div>
@@ -304,8 +304,8 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
               
               <div className="text-xs text-gray-500">
                 <p>By: {author}</p>
-                <p>📅 {date}</p>
-                {classTime && <p>🕒 {classTime}</p>}
+                <p>ðŸ“… {date}</p>
+                {classTime && <p>ðŸ•’ {classTime}</p>}
               </div>
 
               {/* Action Button */}
@@ -330,7 +330,7 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                     }}
                     className="w-full py-2 px-3 rounded text-xs font-semibold transition-all duration-200 bg-red-600 hover:bg-red-700 text-white"
                   >
-                    🔴 Join Live
+                    ðŸ”´ Join Live
                   </button>
                 ) : (
                   <button 
@@ -347,10 +347,10 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                     {isRegistering 
                       ? 'Processing...' 
                       : isRegistered 
-                        ? '❌ Unregister' 
+                        ? 'âŒ Unregister' 
                         : isRegistrationClosed()
-                          ? '🔒 Registration Closed'
-                          : '📝 Register'}
+                          ? 'ðŸ”’ Registration Closed'
+                          : 'ðŸ“ Register'}
                   </button>
                 )}
               </div>
@@ -372,14 +372,14 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                            text-white rounded-full flex items-center justify-center
                            transition-all duration-200 hover:scale-110 text-xl font-bold z-20"
               >
-                ×
+                Ã—
               </button>
               
               {image ? (
                 <>
                   <img 
                     src={image} 
-                    alt={title}
+                    alt={title} loading="lazy" decoding="async"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-800/80 to-transparent"></div>
@@ -424,8 +424,8 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                 </p>
                 
                 <div className="flex items-center gap-4 text-sm text-gray-400 mb-6">
-                  <span>📅 {date}</span>
-                  {classTime && <span>🕒 {classTime}</span>}
+                  <span>ðŸ“… {date}</span>
+                  {classTime && <span>ðŸ•’ {classTime}</span>}
                 </div>
               </div>
 
@@ -520,7 +520,7 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                     </svg>
-                    🔴 Join Live Class
+                    ðŸ”´ Join Live Class
                   </button>
                 ) : (
                   <button 
@@ -546,9 +546,9 @@ export default function CourseCard({title, tag, author, date, time, startTime, s
                     {isRegistering 
                       ? 'Processing...' 
                       : isRegistered 
-                        ? '❌ Unregister from Class' 
+                        ? 'âŒ Unregister from Class' 
                         : isRegistrationClosed()
-                          ? '🔒 Registration Closed'
+                          ? 'ðŸ”’ Registration Closed'
                           : 'Register Now'}
                   </button>
                 )}
