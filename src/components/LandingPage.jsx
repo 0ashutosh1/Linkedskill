@@ -820,6 +820,5 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           </motion.div>
         </div>
       </section>
-    )
-
+  )
 }
